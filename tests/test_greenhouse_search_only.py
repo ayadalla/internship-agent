@@ -10,7 +10,7 @@ URL = "https://job-boards.greenhouse.io/example/jobs/1"
 
 def test_saved_prepare_cli_does_not_accept_site_search_as_application(tmp_path, capsys):
     source = tmp_path / "synthetic-shell.html"
-    source.write_text(PAGE)
+    source.write_text(PAGE, encoding="utf-8")
     status = main([str(source), "--page-url", URL])
     result = json.loads(capsys.readouterr().out)
     assert status == 2
@@ -27,7 +27,7 @@ def test_manifest_preflight_does_not_count_search_only_page_as_application(tmp_p
     from ats_preflight import run_preflight_manifest
 
     source = tmp_path / "synthetic-search.html"
-    source.write_text(PAGE)
+    source.write_text(PAGE, encoding="utf-8")
     result = run_preflight_manifest([{"platform": "greenhouse", "html_path": str(source), "page_url": URL}])
     assert result["summary"]["application_count"] == 0
     assert result["results"][0]["page_type"] == "listing"

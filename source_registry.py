@@ -12,7 +12,7 @@ SUPPORTED_PLATFORMS = frozenset({"greenhouse", "lever"})
 
 def load_registry(path: str | Path) -> dict[str, Any]:
     """Load active approved sources in a deterministic platform/token order."""
-    payload = json.loads(Path(path).read_text())
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or payload.get("version") != 1:
         raise ValueError("Unsupported source registry version")
     entries = payload.get("sources")

@@ -284,8 +284,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--profile", default=str(PROFILE))
     p.add_argument("--queue-db", default=str(BASE / "runtime/app_queue.sqlite3"))
     args = p.parse_args(argv)
-    profile = json.loads(Path(args.profile).read_text())
-    text = Path(args.input).read_text() if args.input else sys.stdin.read()
+    profile = json.loads(Path(args.profile).read_text(encoding="utf-8"))
+    text = Path(args.input).read_text(encoding="utf-8") if args.input else sys.stdin.read()
     raw_jobs = json.loads(text)
     observation_urls = {normalize_url(job.get("url", "")) for job in raw_jobs if _observation_only(job)}
     jobs = unique_jobs(raw_jobs)
@@ -303,7 +303,7 @@ def main(argv: list[str] | None = None) -> int:
     payload = {"scanned": len(results), "new": len(new), "manual_only": manual,
                "auto_apply_queue": queue, "all_results": results,
                "observation_only_results": observations}
-    Path(args.output).write_text(json.dumps(payload, indent=2) + "\n")
+    Path(args.output).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(payload, indent=2))
     return 0
 

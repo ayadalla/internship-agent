@@ -52,7 +52,7 @@ def test_learned_ats_confirmation_requires_exact_submitted_portal_readback(
 
     confirmation = confirmation_reconciliation.extract_confirmation(
         platform=platform,
-        html_text=(ROOT / "fixtures" / fixture_name).read_text(),
+        html_text=(ROOT / "fixtures" / fixture_name).read_text(encoding="utf-8"),
         page_url=page_url,
     )
     result = confirmation_reconciliation.reconcile_candidate_portal(
@@ -88,7 +88,7 @@ def test_portal_reconciliation_preserves_identity_state_and_confirmation_drift_a
     platform, fixture_name, page_url, identity = SCENARIOS[2]
     confirmation = confirmation_reconciliation.extract_confirmation(
         platform=platform,
-        html_text=(ROOT / "fixtures" / fixture_name).read_text(),
+        html_text=(ROOT / "fixtures" / fixture_name).read_text(encoding="utf-8"),
         page_url=page_url,
     )
     confirmation["confirmation_url"] = "https://jobs.lever.co/fixture/other/confirmation"

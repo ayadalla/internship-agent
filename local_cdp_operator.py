@@ -357,7 +357,7 @@ class LocalChromeFixtureSession:
             )
         if not self.chrome_path.is_file():
             raise LocalCDPIntegrationError("Google Chrome executable is unavailable")
-        fixture_text = self.fixture_path.read_text()
+        fixture_text = self.fixture_path.read_text(encoding="utf-8")
         if 'data-fixture="local-operator"' not in fixture_text:
             raise LocalCDPIntegrationError("only the sanitized local operator fixture is allowed")
         self.runtime_dir.mkdir(parents=True, exist_ok=True)

@@ -26,7 +26,7 @@ class RunLock:
         self._handle = None
 
     def __enter__(self) -> "RunLock":
-        self._handle = self.path.open("a+")
+        self._handle = self.path.open("a+", encoding="utf-8")
         if not file_lock.try_lock(self._handle.fileno()):
             self._handle.close()
             self._handle = None
@@ -352,7 +352,7 @@ def load_source_report(source_report_path: Path | None) -> dict | None:
     if source_report_path is None:
         return None
     try:
-        report = json.loads(source_report_path.read_text())
+        report = json.loads(source_report_path.read_text(encoding="utf-8"))
     except OSError as exc:
         raise SystemExit("Invalid source report: unreadable") from exc
     except json.JSONDecodeError as exc:
@@ -404,14 +404,14 @@ def run(
     audit_log_path: Path,
     source_report_path: Path | None = None,
 ) -> dict:
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
     errors = pipeline.validate_profile(profile)
     if errors:
         raise SystemExit("Invalid profile: " + ", ".join(errors))
 
     source_report = load_source_report(source_report_path)
 
-    candidates = json.loads(candidates_path.read_text())
+    candidates = json.loads(candidates_path.read_text(encoding="utf-8"))
     known_urls = scanner.known_urls_from_queue(queue_db)
     scan = build_scan(candidates, profile, known_urls=known_urls)
     plan = {
@@ -430,7 +430,7 @@ def run(
     }
     if source_report is not None:
         payload["source_report"] = source_report
-    output_path.write_text(json.dumps(payload, indent=2) + "\n")
+    output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
     logger = AuditLogger(audit_log_path)
     logger.log(

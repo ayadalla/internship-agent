@@ -15,7 +15,7 @@ import orchestrator
 def test_dry_run_orchestrates_scan_route_queue_and_audit(tmp_path, monkeypatch):
     profile_path = tmp_path / "profile.json"
     resume_path = tmp_path / "resume.pdf"
-    resume_path.write_text("fixture resume")
+    resume_path.write_text("fixture resume", encoding="utf-8")
     profile_path.write_text(
         json.dumps(
             {
@@ -25,7 +25,7 @@ def test_dry_run_orchestrates_scan_route_queue_and_audit(tmp_path, monkeypatch):
                 "preferences": {"target_roles": ["Software Engineer Intern"]},
             }
         )
-    )
+    , encoding="utf-8")
 
     candidates_path = tmp_path / "candidates.json"
     candidates_path.write_text(
@@ -46,7 +46,7 @@ def test_dry_run_orchestrates_scan_route_queue_and_audit(tmp_path, monkeypatch):
                 },
             ]
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -66,7 +66,7 @@ def test_dry_run_orchestrates_scan_route_queue_and_audit(tmp_path, monkeypatch):
     )
 
     assert exit_code == 0
-    payload = json.loads(output_path.read_text())
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert payload["mode"] == "dry_run"
     assert payload["scan"]["new"] == 2
     assert payload["plan"]["counts"] == {
@@ -80,7 +80,7 @@ def test_dry_run_orchestrates_scan_route_queue_and_audit(tmp_path, monkeypatch):
     assert queued_job["company"] == "Example"
     assert queued_job["state"] == "discovered"
 
-    audit_lines = (tmp_path / "audit.jsonl").read_text().strip().splitlines()
+    audit_lines = (tmp_path / "audit.jsonl").read_text(encoding="utf-8").strip().splitlines()
     assert len(audit_lines) == 1
     audit_entry = json.loads(audit_lines[0])
     assert audit_entry["event"] == "dry_run_completed"
@@ -91,7 +91,7 @@ def test_dry_run_orchestrates_scan_route_queue_and_audit(tmp_path, monkeypatch):
 def test_main_exits_without_side_effects_when_lock_is_already_held(tmp_path, monkeypatch):
     profile_path = tmp_path / "profile.json"
     resume_path = tmp_path / "resume.pdf"
-    resume_path.write_text("fixture resume")
+    resume_path.write_text("fixture resume", encoding="utf-8")
     profile_path.write_text(
         json.dumps(
             {
@@ -101,7 +101,7 @@ def test_main_exits_without_side_effects_when_lock_is_already_held(tmp_path, mon
                 "preferences": {"target_roles": ["Software Engineer Intern"]},
             }
         )
-    )
+    , encoding="utf-8")
     candidates_path = tmp_path / "candidates.json"
     candidates_path.write_text(
         json.dumps(
@@ -113,7 +113,7 @@ def test_main_exits_without_side_effects_when_lock_is_already_held(tmp_path, mon
                 }
             ]
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -145,7 +145,7 @@ def test_main_exits_without_side_effects_when_lock_is_already_held(tmp_path, mon
 def _write_valid_profile_and_candidates(tmp_path: Path) -> tuple[Path, Path]:
     profile_path = tmp_path / "profile.json"
     resume_path = tmp_path / "resume.pdf"
-    resume_path.write_text("fixture resume")
+    resume_path.write_text("fixture resume", encoding="utf-8")
     profile_path.write_text(
         json.dumps(
             {
@@ -155,7 +155,7 @@ def _write_valid_profile_and_candidates(tmp_path: Path) -> tuple[Path, Path]:
                 "preferences": {"target_roles": ["Software Engineer Intern"]},
             }
         )
-    )
+    , encoding="utf-8")
     candidates_path = tmp_path / "candidates.json"
     candidates_path.write_text(
         json.dumps(
@@ -167,7 +167,7 @@ def _write_valid_profile_and_candidates(tmp_path: Path) -> tuple[Path, Path]:
                 }
             ]
         )
-    )
+    , encoding="utf-8")
     return profile_path, candidates_path
 
 
@@ -183,7 +183,7 @@ def test_main_fails_closed_when_source_report_is_not_healthy(tmp_path, monkeypat
                 "warning": "One configured source failed",
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -213,7 +213,7 @@ def test_main_fails_closed_when_source_report_is_not_healthy(tmp_path, monkeypat
 def test_main_fails_closed_with_stable_reason_when_source_report_is_malformed_json(tmp_path, monkeypatch):
     profile_path, candidates_path = _write_valid_profile_and_candidates(tmp_path)
     source_report_path = tmp_path / "sources-report.json"
-    source_report_path.write_text("{not valid json")
+    source_report_path.write_text("{not valid json", encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -243,7 +243,7 @@ def test_main_fails_closed_with_stable_reason_when_source_report_is_malformed_js
 def test_main_fails_closed_with_stable_reason_when_source_report_omits_health_status(tmp_path, monkeypatch):
     profile_path, candidates_path = _write_valid_profile_and_candidates(tmp_path)
     source_report_path = tmp_path / "sources-report.json"
-    source_report_path.write_text(json.dumps({"source_runs": []}))
+    source_report_path.write_text(json.dumps({"source_runs": []}), encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -293,7 +293,7 @@ def test_main_fails_closed_when_healthy_source_report_omits_source_runs(tmp_path
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -349,7 +349,7 @@ def test_main_fails_closed_when_empty_healthy_source_report_claims_aggregate_fre
                 "freshness_unknown": False,
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -406,7 +406,7 @@ def test_main_fails_closed_when_healthy_source_report_contains_malformed_source_
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -465,7 +465,7 @@ def test_main_fails_closed_when_healthy_source_report_omits_required_freshness_a
         },
     }
     report.pop(missing_key)
-    source_report_path.write_text(json.dumps(report))
+    source_report_path.write_text(json.dumps(report), encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -524,7 +524,7 @@ def test_main_fails_closed_with_stable_reason_when_source_report_path_is_missing
 def test_main_fails_closed_with_stable_reason_when_source_report_status_is_not_a_string(tmp_path, monkeypatch):
     profile_path, candidates_path = _write_valid_profile_and_candidates(tmp_path)
     source_report_path = tmp_path / "sources-report.json"
-    source_report_path.write_text(json.dumps({"source_health_status": ["healthy"]}))
+    source_report_path.write_text(json.dumps({"source_health_status": ["healthy"]}), encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -584,7 +584,7 @@ def test_main_fails_closed_when_healthy_source_report_contains_failures(tmp_path
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -644,7 +644,7 @@ def test_main_fails_closed_when_healthy_source_report_contains_non_ok_source_run
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -702,7 +702,7 @@ def test_main_fails_closed_when_healthy_source_report_has_contradictory_freshnes
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -759,7 +759,7 @@ def test_main_fails_closed_when_healthy_source_report_has_contradictory_freshnes
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -826,7 +826,7 @@ def test_main_fails_closed_when_healthy_source_report_duplicates_source_run_iden
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -884,7 +884,7 @@ def test_main_fails_closed_when_healthy_source_report_contains_malformed_freshne
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -942,7 +942,7 @@ def test_main_fails_closed_when_healthy_source_report_contains_malformed_freshne
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1005,7 +1005,7 @@ def test_main_fails_closed_when_healthy_source_report_contains_malformed_failure
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1066,7 +1066,7 @@ def test_main_fails_closed_when_healthy_source_report_has_unparseable_top_level_
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1126,7 +1126,7 @@ def test_main_fails_closed_when_healthy_source_report_has_unparseable_source_run
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1187,7 +1187,7 @@ def test_main_fails_closed_when_healthy_source_report_top_level_latest_posting_a
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1259,7 +1259,7 @@ def test_main_accepts_healthy_source_report_when_top_level_latest_posting_at_mat
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1280,7 +1280,7 @@ def test_main_accepts_healthy_source_report_when_top_level_latest_posting_at_mat
     )
 
     assert exit_code == 0
-    payload = json.loads((tmp_path / "orchestrator-report.json").read_text())
+    payload = json.loads((tmp_path / "orchestrator-report.json").read_text(encoding="utf-8"))
     assert payload["source_report"]["latest_posting_at"] == "2026-08-24T00:00:00Z"
 
 
@@ -1330,7 +1330,7 @@ def test_main_accepts_healthy_source_report_when_top_level_latest_posting_at_mat
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1351,7 +1351,7 @@ def test_main_accepts_healthy_source_report_when_top_level_latest_posting_at_mat
     )
 
     assert exit_code == 0
-    payload = json.loads((tmp_path / "orchestrator-report.json").read_text())
+    payload = json.loads((tmp_path / "orchestrator-report.json").read_text(encoding="utf-8"))
     assert payload["source_report"]["latest_posting_at"] == "2026-08-24T00:00:00Z"
 
 
@@ -1399,7 +1399,7 @@ def test_main_fails_closed_when_healthy_source_report_hides_missing_source_run_l
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1469,7 +1469,7 @@ def test_main_fails_closed_when_healthy_source_report_omits_top_level_latest_pos
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1540,7 +1540,7 @@ def test_main_fails_closed_when_healthy_source_report_mixes_naive_and_offset_awa
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1599,7 +1599,7 @@ def test_main_fails_closed_when_healthy_source_report_sets_top_level_stale_resul
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1660,7 +1660,7 @@ def test_main_fails_closed_when_healthy_source_report_has_non_boolean_top_level_
         },
     }
     report[field_name] = field_value
-    source_report_path.write_text(json.dumps(report))
+    source_report_path.write_text(json.dumps(report), encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1720,7 +1720,7 @@ def test_main_fails_closed_when_healthy_source_report_has_non_string_top_level_w
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 
@@ -1780,7 +1780,7 @@ def test_main_fails_closed_when_healthy_source_report_has_non_string_top_level_l
                 },
             }
         )
-    )
+    , encoding="utf-8")
 
     monkeypatch.setattr(orchestrator.scanner, "tracker_duplicate", lambda company, role, url: False)
 

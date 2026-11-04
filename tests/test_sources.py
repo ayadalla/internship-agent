@@ -168,7 +168,7 @@ def test_main_combines_source_tokens_deduplicates_urls_and_writes_candidates_jso
     ])
 
     assert exit_code == 3
-    assert json.loads(output.read_text()) == [
+    assert json.loads(output.read_text(encoding="utf-8")) == [
         {
             "company": "Green Co",
             "role": "Software Engineer Intern",
@@ -258,7 +258,7 @@ def test_main_writes_report_artifact_matching_stdout_payload(tmp_path, monkeypat
 
     stdout_payload = json.loads(capsys.readouterr().out)
     assert exit_code == 3
-    assert json.loads(output.read_text()) == [
+    assert json.loads(output.read_text(encoding="utf-8")) == [
         {
             "company": "Green Co",
             "role": "Software Engineer Intern",
@@ -267,7 +267,7 @@ def test_main_writes_report_artifact_matching_stdout_payload(tmp_path, monkeypat
             "source": "Greenhouse public API",
         }
     ]
-    assert json.loads(report.read_text()) == stdout_payload
+    assert json.loads(report.read_text(encoding="utf-8")) == stdout_payload
     assert stdout_payload["output"] == str(output)
     assert stdout_payload["report"] == str(report)
     assert stdout_payload["source_health_status"] == "stale_or_unknown"
@@ -313,7 +313,7 @@ def test_main_reports_failed_tokens_without_losing_successful_candidates(tmp_pat
     ])
 
     assert exit_code == 1
-    assert json.loads(output.read_text()) == [
+    assert json.loads(output.read_text(encoding="utf-8")) == [
         {
             "company": "Green Co",
             "role": "Software Engineer Intern",
@@ -410,7 +410,7 @@ def test_main_signals_zero_candidates_when_sources_return_no_internships(tmp_pat
     ])
 
     assert exit_code == 3
-    assert json.loads(output.read_text()) == []
+    assert json.loads(output.read_text(encoding="utf-8")) == []
     assert json.loads(capsys.readouterr().out) == {
         "greenhouse_tokens": ["green-co"],
         "lever_tokens": ["lever-co"],
@@ -480,7 +480,7 @@ def test_main_signals_stale_non_empty_results_when_newest_posting_is_old(tmp_pat
     ])
 
     assert exit_code == 3
-    assert json.loads(output.read_text()) == [
+    assert json.loads(output.read_text(encoding="utf-8")) == [
         {
             "company": "Green Co",
             "role": "Software Engineer Intern",

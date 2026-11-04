@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 import pytest
+from symlink_support import symlink_or_skip
 
 
 def onboarding():
@@ -458,7 +459,7 @@ def test_cli_review_then_atomic_private_save_preserves_unrelated_data(tmp_path, 
     original = {"credentials": {"legacy": "NEVER_PRINT_SECRET"},
                 "integration": {"token": "NEVER_PRINT_TOKEN"},
                 "contact": {"private_note": "NEVER_PRINT_NOTE"}}
-    path.write_text(json.dumps(original))
+    path.write_text(json.dumps(original), encoding="utf-8")
     before = path.read_bytes()
     answers = Answers({**basic_answers(tmp_path), "Save this profile?": "yes"})
     messages = []
@@ -478,7 +479,7 @@ def test_cli_review_then_atomic_private_save_preserves_unrelated_data(tmp_path, 
     assert onboarding().main(["--profile", str(path), "--skip-credentials"],
         input_fn=scripted, output_fn=messages.append) == 0
     answers.exhausted()
-    saved = json.loads(path.read_text())
+    saved = json.loads(path.read_text(encoding="utf-8"))
     assert saved["name"]["full"] == "Alex Synthetic"
     assert saved["credentials"] == original["credentials"]
     assert saved["integration"] == original["integration"]
@@ -491,7 +492,7 @@ def test_cli_review_then_atomic_private_save_preserves_unrelated_data(tmp_path, 
 @pytest.mark.parametrize("interrupt", [EOFError, KeyboardInterrupt])
 def test_cancel_or_interrupted_setup_never_modifies_profile(tmp_path, interrupt):
     path = tmp_path / "private.json"
-    path.write_text('{"untouched": true}\n')
+    path.write_text('{"untouched": true}\n', encoding="utf-8")
     original = path.read_bytes()
     messages = []
     for stop_at in ("First name", "Save this profile?"):
@@ -517,21 +518,21 @@ def test_cancel_or_interrupted_setup_never_modifies_profile(tmp_path, interrupt)
 def test_refuses_unsafe_destinations_before_collecting_private_data(tmp_path, kind):
     import subprocess
     path = tmp_path / "private.json"
-    path.write_text('{"sentinel": "NEVER_PRINT"}')
+    path.write_text('{"sentinel": "NEVER_PRINT"}', encoding="utf-8")
     protected = path
     if kind == "tracked":
         subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
         subprocess.run(["git", "-C", str(tmp_path), "add", path.name], check=True)
     elif kind == "example":
         path = tmp_path / "profile.example.json"
-        path.write_text(protected.read_text())
+        path.write_text(protected.read_text(encoding="utf-8"), encoding="utf-8")
         protected = path
     elif kind == "symlink":
         path = tmp_path / "link.json"
-        path.symlink_to(protected)
+        symlink_or_skip(path, protected)
     else:
         link = tmp_path / "linked"
-        link.symlink_to(tmp_path, target_is_directory=True)
+        symlink_or_skip(link, tmp_path, target_is_directory=True)
         path = link / "private.json"
     before = protected.read_bytes()
     def forbidden(_):
@@ -551,7 +552,7 @@ def test_check_is_read_only_secret_free_and_optional_screening_is_not_required(t
         "contact": {"email": answers["Email"], "phone": answers["Phone"]},
         "resume": {"primary": answers["Resume file"]},
         "credentials": {"password": "NEVER_PRINT"}, "arbitrary": "NEVER_PRINT"}
-    path.write_text(json.dumps(profile))
+    path.write_text(json.dumps(profile), encoding="utf-8")
     before = path.read_bytes(), path.stat().st_mtime_ns, path.stat().st_mode
     messages = []
     def no_prompt(_):
@@ -564,7 +565,7 @@ def test_check_is_read_only_secret_free_and_optional_screening_is_not_required(t
     assert "us_citizen" in text and "sponsorship_future" in text
     assert all(secret not in text for secret in ("NEVER_PRINT", answers["Email"], answers["Phone"], answers["Resume file"]))
     profile["contact"]["email"] = "invalid"
-    path.write_text(json.dumps(profile))
+    path.write_text(json.dumps(profile), encoding="utf-8")
     assert onboarding().main(["--profile", str(path), "--check"], output_fn=messages.append) == 1
     assert "contact.email" in " ".join(messages)
     path.unlink()
@@ -590,7 +591,7 @@ def test_credentials_run_only_after_confirmation_and_save_references_only(tmp_pa
     answers = Answers({**basic_answers(tmp_path), "Save this profile?": "yes"})
     assert onboarding().main(["--profile", str(path)], input_fn=answers, output_fn=messages.append) == 0
     answers.exhausted()
-    saved = json.loads(path.read_text())
+    saved = json.loads(path.read_text(encoding="utf-8"))
     assert saved["credentials"] == references
     assert called == ["alex@example.test"]
     assert "hermes-job-agent" not in " ".join(messages)
@@ -613,16 +614,16 @@ def test_credentials_eof_cancels_profile_even_when_helper_catches_it(tmp_path):
 def test_rechecks_destination_after_review_before_replacing_anything(tmp_path):
     path = tmp_path / "private.json"
     protected = tmp_path / "protected.json"
-    protected.write_text('{"unchanged": true}')
+    protected.write_text('{"unchanged": true}', encoding="utf-8")
     def change_destination(prompt):
         if prompt.startswith("Save this profile?"):
-            path.symlink_to(protected)
+            symlink_or_skip(path, protected)
             return "yes"
         return ""
     assert onboarding().main(["--profile", str(path), "--skip-credentials"],
         input_fn=change_destination, output_fn=lambda _: None) == 2
     assert path.is_symlink()
-    assert protected.read_text() == '{"unchanged": true}'
+    assert protected.read_text(encoding="utf-8") == '{"unchanged": true}'
     assert {p.name for p in tmp_path.iterdir()} == {"private.json", "protected.json"}
 
 
@@ -654,11 +655,11 @@ def test_rerun_boolean_answers_are_boolean_or_null_not_legacy_strings():
 @pytest.mark.parametrize("content", ['[]', 'null', '"PRIVATE_SENTINEL"', '{broken JSON', '{"company_disclosures": {}}'])
 def test_malformed_profile_is_not_replaced_or_echoed(tmp_path, content):
     path = tmp_path / "private.json"
-    path.write_text(content)
+    path.write_text(content, encoding="utf-8")
     messages = []
     assert onboarding().main(["--profile", str(path), "--skip-credentials"],
         input_fn=Answers({"Save this profile?": "yes"}), output_fn=messages.append) == 2
-    assert path.read_text() == content
+    assert path.read_text(encoding="utf-8") == content
     assert "PRIVATE_SENTINEL" not in " ".join(messages)
 
 
@@ -706,7 +707,7 @@ def test_real_cli_saved_profile_roundtrips_through_question_answer_engine(tmp_pa
     run = subprocess.run(command + ["--skip-credentials"], input="\n".join(lines + ["yes", ""]),
                          text=True, capture_output=True, cwd=tmp_path, timeout=20)
     assert run.returncode == 0, run.stderr
-    profile = json.loads(path.read_text())
+    profile = json.loads(path.read_text(encoding="utf-8"))
     engine = QuestionAnswerEngine(profile=profile)
     expected = {
         "Are you a US citizen?": "No", "Are you authorized to work in the US?": "Yes",
@@ -746,14 +747,14 @@ def test_default_profile_path_is_next_to_script_not_current_directory(tmp_path, 
 def test_failed_atomic_replace_leaves_original_and_no_backup(tmp_path, monkeypatch):
     import os
     path = tmp_path / "private.json"
-    path.write_text('{"untouched": true}')
+    path.write_text('{"untouched": true}', encoding="utf-8")
     def fail_replace(*_):
         raise OSError("PRIVATE_ERROR_DETAIL")
     monkeypatch.setattr(os, "replace", fail_replace)
     messages = []
     assert onboarding().main(["--profile", str(path), "--skip-credentials"],
         input_fn=Answers({"Save this profile?": "yes"}), output_fn=messages.append) == 2
-    assert path.read_text() == '{"untouched": true}'
+    assert path.read_text(encoding="utf-8") == '{"untouched": true}'
     assert [p.name for p in tmp_path.iterdir()] == ["private.json"]
     assert "PRIVATE_ERROR_DETAIL" not in " ".join(messages)
 

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -12,10 +15,16 @@ import production_run
 import sources
 
 
+@pytest.fixture(autouse=True)
+def _fixed_clock(monkeypatch):
+    """Fixtures are dated 2026-08-23; pin 'now' so the 30-day stale check does not drift."""
+    monkeypatch.setattr(sources, "_utcnow", lambda: datetime(2026, 9, 1, tzinfo=timezone.utc))
+
+
 def _write_profile(tmp_path: Path) -> Path:
     profile_path = tmp_path / "profile.json"
     resume_path = tmp_path / "resume.pdf"
-    resume_path.write_text("fixture resume")
+    resume_path.write_text("fixture resume", encoding="utf-8")
     profile_path.write_text(
         json.dumps(
             {
@@ -29,7 +38,7 @@ def _write_profile(tmp_path: Path) -> Path:
                 },
             }
         )
-    )
+    , encoding="utf-8")
     return profile_path
 
 
@@ -71,7 +80,7 @@ def test_main_runs_sources_then_orchestrator_and_persists_all_artifacts(tmp_path
     assert payload["source_exit_code"] == 0
     assert payload["orchestrator_exit_code"] == 0
 
-    candidates = json.loads((workspace / "candidates.json").read_text())
+    candidates = json.loads((workspace / "candidates.json").read_text(encoding="utf-8"))
     assert candidates == [
         {
             "company": "Example",
@@ -83,10 +92,10 @@ def test_main_runs_sources_then_orchestrator_and_persists_all_artifacts(tmp_path
         }
     ]
 
-    source_report = json.loads((workspace / "sources-report.json").read_text())
+    source_report = json.loads((workspace / "sources-report.json").read_text(encoding="utf-8"))
     assert source_report["source_health_status"] == "healthy"
 
-    orchestrator_report = json.loads((workspace / "orchestrator-report.json").read_text())
+    orchestrator_report = json.loads((workspace / "orchestrator-report.json").read_text(encoding="utf-8"))
     assert orchestrator_report["mode"] == "dry_run"
     assert orchestrator_report["queue"]["count"] == 1
 
@@ -146,7 +155,7 @@ def test_main_proves_idempotent_dry_run_and_keeps_unsupported_roles_out_of_queue
     assert len(jobs) == 1
     assert jobs[0].url == "https://job-boards.greenhouse.io/example/jobs/123"
 
-    audit_lines = (workspace / "audit.jsonl").read_text().strip().splitlines()
+    audit_lines = (workspace / "audit.jsonl").read_text(encoding="utf-8").strip().splitlines()
     assert len(audit_lines) == 2
 
 
@@ -158,7 +167,7 @@ def test_production_dry_run_accepts_registry_without_touching_sheets(tmp_path, m
     monkeypatch.setattr(sources, "fetch_greenhouse_jobs", lambda *args, **kwargs: [])
     registry = tmp_path / "registry.json"
     registry.write_text(json.dumps({"version": 1, "sources": [
-        {"platform": "greenhouse", "token": "example", "approved": True}]}))
+        {"platform": "greenhouse", "token": "example", "approved": True}]}), encoding="utf-8")
     assert production_run.main(["--registry", str(registry), "--profile", str(profile_path),
                                 "--workspace", str(tmp_path / "run")]) == 3
     result = json.loads(capsys.readouterr().out)

@@ -101,7 +101,7 @@ def test_exception_after_submit_boundary_is_durable_and_blocks_alternatives(tmp_
     backend.submit = disconnected
     assert controller.run_once()['status'] == 'submission_uncertain'
     assert controller.queue.list_jobs()[1].state == 'discovered'
-    active = json.loads((controller.root/'active-attempt.json').read_text())
+    active = json.loads((controller.root/'active-attempt.json').read_text(encoding="utf-8"))
     assert active['phase'] == 'submission_uncertain'
     assert 'secret browser' not in json.dumps(controller.status())
 
@@ -167,7 +167,7 @@ def test_status_cli_is_readonly_and_disabled_cli_does_not_open_runtime(tmp_path,
     from autonomous_controller import main
     cfg=tmp_path/'config.json'
     runtime=tmp_path/'absent'
-    cfg.write_text(json.dumps({'production_enabled':False,'runtime_dir':str(runtime)}))
+    cfg.write_text(json.dumps({'production_enabled':False,'runtime_dir':str(runtime)}), encoding="utf-8")
     assert main(['status','--config',str(cfg)])==0
     assert json.loads(capsys.readouterr().out)['status']=='not_started'
     assert not runtime.exists()

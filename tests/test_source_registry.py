@@ -24,7 +24,7 @@ def test_load_registry_returns_sorted_approved_greenhouse_and_lever_boards(tmp_p
                 ],
             }
         )
-    )
+    , encoding="utf-8")
 
     assert source_registry.load_registry(registry) == {
         "version": 1,
@@ -48,7 +48,7 @@ def test_sources_main_collects_only_approved_registry_entries_in_deterministic_o
                 ],
             }
         )
-    )
+    , encoding="utf-8")
     calls: list[tuple[str, str]] = []
 
     def fake_greenhouse(token: str, **_kwargs):

@@ -237,7 +237,7 @@ def _crash_at_boundary(database, issued, boundary):
         # A durable synthetic click marker represents an external side effect;
         # no browser is opened. Both sides of this boundary must be unknown.
         if boundary == "after_browser_dispatch":
-            Path(database).with_suffix(".synthetic-click").write_text("one click")
+            Path(database).with_suffix(".synthetic-click").write_text("one click", encoding="utf-8")
         os._exit(23)
     store.ledger.confirm(consumed["submission_attempt_id"], now=NOW, confirmed=True)
     os._exit(23)

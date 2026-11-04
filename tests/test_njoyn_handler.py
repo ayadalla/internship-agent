@@ -10,7 +10,7 @@ import njoyn_handler
 
 
 def test_inspect_html_classifies_njoyn_listing_and_exposes_apply_entrypoint():
-    fixture_text = (ROOT / "fixtures" / "njoyn_listing.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "njoyn_listing.html").read_text(encoding="utf-8")
 
     result = njoyn_handler.inspect_html(
         fixture_text,
@@ -37,7 +37,7 @@ def test_inspect_html_classifies_njoyn_listing_and_exposes_apply_entrypoint():
 
 
 def test_inspect_html_inventories_njoyn_account_controls_and_fails_closed():
-    fixture_text = (ROOT / "fixtures" / "njoyn_login_profile.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "njoyn_login_profile.html").read_text(encoding="utf-8")
 
     result = njoyn_handler.inspect_html(
         fixture_text,
@@ -59,7 +59,7 @@ def test_inspect_html_inventories_njoyn_account_controls_and_fails_closed():
 
 
 def test_inspect_html_inventories_njoyn_privacy_surface_and_fails_closed():
-    fixture_text = (ROOT / "fixtures" / "njoyn_privacy.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "njoyn_privacy.html").read_text(encoding="utf-8")
 
     result = njoyn_handler.inspect_html(
         fixture_text,
@@ -85,7 +85,7 @@ def test_inspect_html_inventories_njoyn_privacy_surface_and_fails_closed():
 
 
 def test_inspect_html_inventories_njoyn_disclosures_and_fails_closed():
-    fixture_text = (ROOT / "fixtures" / "njoyn_disclosures.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "njoyn_disclosures.html").read_text(encoding="utf-8")
 
     result = njoyn_handler.inspect_html(
         fixture_text,
@@ -109,7 +109,7 @@ def test_inspect_html_inventories_njoyn_disclosures_and_fails_closed():
 
 
 def test_inspect_html_inventories_njoyn_disability_surface_and_fails_closed():
-    fixture_text = (ROOT / "fixtures" / "njoyn_disability.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "njoyn_disability.html").read_text(encoding="utf-8")
 
     result = njoyn_handler.inspect_html(
         fixture_text,
@@ -135,7 +135,7 @@ def test_inspect_html_inventories_njoyn_disability_surface_and_fails_closed():
 
 
 def test_inspect_html_inventories_njoyn_resume_upload_and_verifies_attached_filename():
-    fixture_text = (ROOT / "fixtures" / "njoyn_resume_upload.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "njoyn_resume_upload.html").read_text(encoding="utf-8")
 
     result = njoyn_handler.inspect_html(
         fixture_text,
@@ -181,7 +181,7 @@ def test_inspect_html_reports_explicit_njoyn_parsed_profile_mismatches_for_corre
 
 
 def test_inspect_html_requires_real_two_step_njoyn_referral_selection_state():
-    fixture_text = (ROOT / "fixtures" / "njoyn_referral.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "njoyn_referral.html").read_text(encoding="utf-8")
 
     result = njoyn_handler.inspect_html(
         fixture_text,
@@ -206,7 +206,7 @@ def test_inspect_html_requires_real_two_step_njoyn_referral_selection_state():
 
 
 def test_inspect_html_inventories_njoyn_questionnaire_and_fails_closed_on_required_questions():
-    fixture_text = (ROOT / "fixtures" / "njoyn_questionnaire.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "njoyn_questionnaire.html").read_text(encoding="utf-8")
 
     result = njoyn_handler.inspect_html(
         fixture_text,
@@ -227,7 +227,7 @@ def test_inspect_html_inventories_njoyn_questionnaire_and_fails_closed_on_requir
 
 
 def test_inspect_html_extracts_verified_njoyn_confirmation_reference_without_submit_inference():
-    fixture_text = (ROOT / "fixtures" / "njoyn_confirmation.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "njoyn_confirmation.html").read_text(encoding="utf-8")
 
     result = njoyn_handler.inspect_html(
         fixture_text,

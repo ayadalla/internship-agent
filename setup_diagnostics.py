@@ -25,7 +25,7 @@ def _profile_check(profile_path: Path) -> dict:
         }
 
     try:
-        profile = json.loads(profile_path.read_text())
+        profile = json.loads(profile_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         return {
             "status": "blocking",

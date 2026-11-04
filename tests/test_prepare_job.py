@@ -49,7 +49,7 @@ def test_prepare_saved_html_dispatches_to_supported_ats_handlers():
 
     for scenario in scenarios:
         result = prepare_job.prepare_saved_html(
-            html_text=(ROOT / "fixtures" / scenario["fixture"]).read_text(),
+            html_text=(ROOT / "fixtures" / scenario["fixture"]).read_text(encoding="utf-8"),
             page_url=scenario["page_url"],
             expected_resume_basename=scenario["expected_resume_basename"],
         )
@@ -65,7 +65,7 @@ def test_prepare_saved_html_dispatches_njoyn_listing_without_enabling_submission
     page_url = "https://cgi.njoyn.com/corp/xweb/xweb.asp?job=fixture"
 
     result = prepare_job.prepare_saved_html(
-        html_text=(ROOT / "fixtures" / "njoyn_listing.html").read_text(),
+        html_text=(ROOT / "fixtures" / "njoyn_listing.html").read_text(encoding="utf-8"),
         page_url=page_url,
     )
 
@@ -84,7 +84,7 @@ def test_prepare_saved_html_reuses_authenticated_learned_tenant_session_without_
     page_url = "https://cgi.njoyn.com/corp/xweb/xweb.asp?job=fixture"
 
     result = prepare_job.prepare_saved_html(
-        html_text=(ROOT / "fixtures" / "njoyn_listing.html").read_text(),
+        html_text=(ROOT / "fixtures" / "njoyn_listing.html").read_text(encoding="utf-8"),
         page_url=page_url,
         tenant_metadata={
             "tenant": "cgi",
@@ -115,7 +115,7 @@ def test_load_tenant_metadata_returns_matching_authenticated_njoyn_tenant_only(t
             "authenticated": True,
             "session_reference": "runtime-only:njoyn-cgi",
         }],
-    }))
+    }), encoding="utf-8")
 
     result = tenant_metadata.load_for_page(
         metadata_path,
@@ -142,7 +142,7 @@ def test_main_loads_validated_tenant_metadata_without_serializing_secrets(tmp_pa
             "authenticated": True,
             "session_reference": "runtime-only:njoyn-cgi",
         }],
-    }))
+    }), encoding="utf-8")
 
     exit_code = prepare_job.main([
         str(ROOT / "fixtures" / "njoyn_listing.html"),
@@ -173,7 +173,7 @@ def test_main_uses_profile_resume_preflight_and_embeds_safe_evidence(tmp_path, c
             "required_application_filename": "Kevin_Pyo_Resume.pdf",
             "do_not_use_for_applications": [],
         }
-    }))
+    }), encoding="utf-8")
 
     exit_code = prepare_job.main([
         str(ROOT / "fixtures" / "greenhouse.html"),
@@ -217,7 +217,7 @@ def test_main_fails_closed_with_machine_readable_error_for_unsupported_ats(tmp_p
 
 def test_main_fails_closed_for_supported_ats_manual_gate(tmp_path, capsys):
     fixture = tmp_path / "manual-gate.html"
-    fixture.write_text("<h1>Software Engineer Intern</h1><p>Please verify your email to continue.</p>")
+    fixture.write_text("<h1>Software Engineer Intern</h1><p>Please verify your email to continue.</p>", encoding="utf-8")
 
     exit_code = prepare_job.main([
         str(fixture),

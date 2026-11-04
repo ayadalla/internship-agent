@@ -10,9 +10,9 @@ from autonomous_controller import CandidateParked
 def test_unknown_location_is_parked_even_without_definite_rejection(tmp_path):
     client=FakeWorker()
     backend,job=backend_with_candidate(tmp_path,client=client)
-    catalog=json.loads(backend.catalog_path.read_text())
+    catalog=json.loads(backend.catalog_path.read_text(encoding="utf-8"))
     catalog[job.url]['location']='Remote'
-    backend.catalog_path.write_text(json.dumps(catalog))
+    backend.catalog_path.write_text(json.dumps(catalog), encoding="utf-8")
     with pytest.raises(CandidateParked,match='eligibility_requires_verification'):
         backend._canonical_inputs(job)
     assert client.requests==[]

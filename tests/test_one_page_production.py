@@ -30,19 +30,19 @@ def one_page_inputs(tmp_path):
     manifest_path, answers_path, manifest = _write_live_inputs(tmp_path)
     manifest["target"]["url"] = URL
     manifest["identity"] = {**IDENTITY, "platform": "greenhouse", "tenant": "schonfeld"}
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     answers = {key: ({"search_text": "Fixture", "exact_option": "Fixture"} if op == "react_select_exact" else "Fixture")
                for key, (_, op) in schonfeld_form.CONTROLS.items() if key != "resume"}
     answers.update(phone="5550100", gpa="3.236")
-    answers_path.write_text(json.dumps(answers))
+    answers_path.write_text(json.dumps(answers), encoding="utf-8")
     profile_path=Path(manifest['profile']['path'])
-    accepted=json.loads(profile_path.read_text())
+    accepted=json.loads(profile_path.read_text(encoding="utf-8"))
     accepted.update(name={'first':'Fixture'},contact={'email':'Fixture','phone':'5550100'},
         work_authorization=None,requires_sponsorship=None,education={'gpa':3.236},
         application_facts={k:v.get('exact_option') if isinstance(v,dict) else v for k,v in answers.items()})
-    profile_path.write_text(json.dumps(accepted))
+    profile_path.write_text(json.dumps(accepted), encoding="utf-8")
     manifest['profile']['sha256']=_sha256(profile_path)
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     return manifest_path, answers_path, manifest, answers
 
 
@@ -98,30 +98,30 @@ def test_client_bound_one_page_uses_real_live_prepare_review_authorize_submit_co
         cdp_base_url="http://127.0.0.1:9222", production_enabled=False, transport_factory=lambda _:Transport(),
         health_probe=lambda _: {"status":"ready"})
     from test_production_operator_live import _sha256
-    profile_path=Path(manifest['profile']['path']); original_profile=profile_path.read_text(); original_manifest=manifest_path.read_text()
-    wrong=json.loads(original_profile); wrong['education']['gpa']=3.8; profile_path.write_text(json.dumps(wrong))
-    changed_manifest=json.loads(original_manifest); changed_manifest['profile']['sha256']=_sha256(profile_path); manifest_path.write_text(json.dumps(changed_manifest))
+    profile_path=Path(manifest['profile']['path']); original_profile=profile_path.read_text(encoding="utf-8"); original_manifest=manifest_path.read_text(encoding="utf-8")
+    wrong=json.loads(original_profile); wrong['education']['gpa']=3.8; profile_path.write_text(json.dumps(wrong), encoding="utf-8")
+    changed_manifest=json.loads(original_manifest); changed_manifest['profile']['sha256']=_sha256(profile_path); manifest_path.write_text(json.dumps(changed_manifest), encoding="utf-8")
     with pytest.raises(ValueError, match='canonical profile'):
         op.run_live_prepare(**kwargs, coverage=lambda **_: {'human_required':[]})
-    profile_path.write_text(original_profile);manifest_path.write_text(original_manifest)
+    profile_path.write_text(original_profile, encoding="utf-8");manifest_path.write_text(original_manifest, encoding="utf-8")
     prepared = op.run_live_prepare(**kwargs, coverage=lambda **_: {"human_required":[{"question":"Opaque learned question label"}]})
     assert prepared["review_ready"] is True
     assert prepared["evidence"]["input_binding"]["profile_sha256"] == manifest["profile"]["sha256"]
     assert prepared["evidence"]["input_binding"]["resume_sha256"] == manifest["resume"]["sha256"]
     assert prepared["evidence"]["prepared_at"]
-    original_answers = answers_path.read_text()
+    original_answers = answers_path.read_text(encoding="utf-8")
     drifted = json.loads(original_answers); drifted["gpa"] = "9.999"
-    answers_path.write_text(json.dumps(drifted))
+    answers_path.write_text(json.dumps(drifted), encoding="utf-8")
     with pytest.raises(ValueError, match="canonical profile|input.*drift"):
         op.run_live_review(**kwargs, required_parser_repairs=[], required_question_ids=[])
-    answers_path.write_text(original_answers)
+    answers_path.write_text(original_answers, encoding="utf-8")
     preparation_path = Path(manifest["runtime_paths"]["preparation"])
-    original_preparation = preparation_path.read_text()
+    original_preparation = preparation_path.read_text(encoding="utf-8")
     stale = json.loads(original_preparation); stale["evidence"]["prepared_at"] = "2000-01-01T00:00:00+00:00"
-    preparation_path.write_text(json.dumps(stale))
+    preparation_path.write_text(json.dumps(stale), encoding="utf-8")
     with pytest.raises(ValueError, match="fresh"):
         op.run_live_review(**kwargs, required_parser_repairs=[], required_question_ids=[])
-    preparation_path.write_text(original_preparation)
+    preparation_path.write_text(original_preparation, encoding="utf-8")
     reviewed, _ = op.run_live_review(**kwargs, required_parser_repairs=[], required_question_ids=[])
     assert reviewed["review"]["source"] == "live_client_bound_form"
     assert reviewed["review"]["server_saved"] is False
@@ -152,7 +152,7 @@ def test_worker_wrapper_preserves_official_metadata_separately_from_page_html(tm
     import worker_operator
     from test_worker_operator import local_worker
     manifest_path, _, manifest, _ = one_page_inputs(tmp_path)
-    posting_path=tmp_path/'posting.json'; posting_path.write_text(json.dumps(POSTING))
+    posting_path=tmp_path/'posting.json'; posting_path.write_text(json.dumps(POSTING), encoding="utf-8")
     replies=[{"ok":True,"data":{"ready":True}}, {"ok":True,"data":[{"targetId":manifest["target"]["id"],"url":URL,"type":"page"}]}]
     replies += [{"ok":True,"data":{"binding":{"targetId":manifest["target"]["id"],"url":URL},"result":{"result":{"value":value}}}} for value in [URL,'Fixture', 'Fixture body',HTML]*2]
     with local_worker(replies) as (socket, requests):

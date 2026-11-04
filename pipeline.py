@@ -121,11 +121,11 @@ def main() -> int:
     parser.add_argument("--output", default=str(BASE / "pipeline-plan.json"))
     args = parser.parse_args()
 
-    profile = json.loads(Path(args.profile).read_text())
+    profile = json.loads(Path(args.profile).read_text(encoding="utf-8"))
     errors = validate_profile(profile)
     if errors:
         raise SystemExit("Invalid profile: " + ", ".join(errors))
-    scan = json.loads(Path(args.scan).read_text())
+    scan = json.loads(Path(args.scan).read_text(encoding="utf-8"))
     routed = route_candidates(scan)
     payload = {
         "mode": "plan_only",
@@ -133,7 +133,7 @@ def main() -> int:
         "routes": routed,
         "counts": {key: len(value) for key, value in routed.items()},
     }
-    Path(args.output).write_text(json.dumps(payload, indent=2) + "\n")
+    Path(args.output).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(payload, indent=2))
     return 0
 

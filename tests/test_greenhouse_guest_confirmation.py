@@ -119,7 +119,7 @@ def test_guest_explicit_success_uses_original_intent_not_nonexistent_candidate_h
 def test_guest_requires_exact_original_review_intent_and_trusted_transition(tmp_path, damage):
     context = guest_context(tmp_path)
     journal = context["journal_path"]
-    entry = json.loads(journal.read_text())
+    entry = json.loads(journal.read_text(encoding="utf-8"))
     intent_fields = {
         "wrong_job_intent": "job_id", "wrong_target_intent": "target_id",
         "wrong_origin_intent": "page_url", "wrong_req_intent": "requisition",
@@ -134,16 +134,16 @@ def test_guest_requires_exact_original_review_intent_and_trusted_transition(tmp_
     if damage == "missing_journal":
         journal.unlink()
     elif damage == "empty_journal":
-        journal.write_text("")
+        journal.write_text("", encoding="utf-8")
     elif damage == "duplicate_intent":
         record_page_action(journal, action="submit", evidence=entry["evidence"])
     elif damage in intent_fields:
         entry["evidence"][intent_fields[damage]] = "wrong"
-        journal.write_text(json.dumps(entry) + "\n")
+        journal.write_text(json.dumps(entry) + "\n", encoding="utf-8")
     elif damage == "unmatched_followup":
         record_page_action(journal, action="submit", evidence={**entry["evidence"], "status": "confirmation_observed", "target_id": "unrelated", "verified": True})
     elif damage == "malformed_journal":
-        journal.write_text('{"truncated":')
+        journal.write_text('{"truncated":', encoding="utf-8")
     elif damage in transition_fields:
         context["transition"][transition_fields[damage]] = "wrong"
     elif damage == "unchanged_page":
@@ -160,7 +160,7 @@ def test_guest_requires_exact_original_review_intent_and_trusted_transition(tmp_
         review.pop("review_evidence_sha256")
         review["review_evidence_sha256"] = canonical_digest(review)
         entry["evidence"]["review_evidence_sha256"] = review["review_evidence_sha256"]
-        journal.write_text(json.dumps(entry) + "\n")
+        journal.write_text(json.dumps(entry) + "\n", encoding="utf-8")
         context["transition"]["intent_sha256"] = canonical_digest(entry["evidence"])
 
     result = reconcile(context)
@@ -244,7 +244,7 @@ def test_guest_recognizes_explicit_application_receipt_statements(tmp_path, text
 
 def test_guest_result_preserves_sanitized_original_intent_and_observation_provenance(tmp_path):
     context = guest_context(tmp_path)
-    intent = json.loads(context["journal_path"].read_text())["evidence"]
+    intent = json.loads(context["journal_path"].read_text(encoding="utf-8"))["evidence"]
     result = reconcile(context)
     assert result["evidence"]["provenance"] == {
         "source": "one_shot_same_tab_observation",
@@ -263,7 +263,7 @@ def test_guest_rechecks_observation_and_intent_before_reporting_confirmation(tmp
         def read_only_snapshot(self):
             if self.reads == 1:
                 if drift == "journal":
-                    entry = json.loads(context["journal_path"].read_text())
+                    entry = json.loads(context["journal_path"].read_text(encoding="utf-8"))
                     record_page_action(context["journal_path"], action="submit", evidence=entry["evidence"])
                 else:
                     self.snapshot[drift] = "No longer the confirmed page"
@@ -337,7 +337,7 @@ def test_canonical_one_shot_guest_integration_never_replays(tmp_path, success, i
 
         def click_submit_once(self, selector):
             assert self.click_count == 0
-            intent = json.loads(context["journal_path"].read_text())["evidence"]
+            intent = json.loads(context["journal_path"].read_text(encoding="utf-8"))["evidence"]
             assert intent["status"] == "intent_recorded" and intent["verified"] is False
             before = self.read_only_snapshot()
             self.click_count += 1

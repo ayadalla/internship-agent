@@ -12,7 +12,7 @@ SHELL = '''<!DOCTYPE html><html><head><title></title>
 
 def test_saved_prepare_cli_blocks_a_workday_shell_without_application_controls(tmp_path, capsys):
     source = tmp_path / 'synthetic-workday-shell.html'
-    source.write_text(SHELL)
+    source.write_text(SHELL, encoding="utf-8")
     status = main([str(source), '--page-url', URL])
     result = json.loads(capsys.readouterr().out)
     assert status == 2
@@ -33,7 +33,7 @@ def test_legacy_workday_inspector_does_not_classify_empty_shell_as_application()
 def test_manifest_does_not_count_empty_shell_as_an_application(tmp_path):
     from ats_preflight import run_preflight_manifest
     source = tmp_path / 'synthetic-shell.html'
-    source.write_text(SHELL)
+    source.write_text(SHELL, encoding="utf-8")
     result = run_preflight_manifest([{'platform':'workday', 'html_path':str(source), 'page_url':URL}])
     assert result['summary']['target_count'] == 1
     assert result['summary']['application_count'] == 0

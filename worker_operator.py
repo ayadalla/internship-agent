@@ -121,7 +121,7 @@ class WorkerTransport:
             context = confirmation_context
             binding = _review_binding(context.get("review_evidence", {}), job_id=context.get("job_id"))
             try:
-                entries = [json.loads(line) for line in Path(context["journal_path"]).read_text().splitlines() if line.strip()]
+                entries = [json.loads(line) for line in Path(context["journal_path"]).read_text(encoding="utf-8").splitlines() if line.strip()]
                 intents = [entry['evidence'] for entry in entries if entry.get('action') == 'submit' and entry.get('evidence',{}).get('status') == 'intent_recorded']
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 raise ValueError("original confirmation journal unavailable") from exc
@@ -415,15 +415,15 @@ def main(argv: list[str] | None = None) -> int:
             manifest_args.manifest, production_enabled=manifest_args.enable_production_live,
         )
         client = WorkerClient(args.worker_socket)
-        posting = json.loads(Path(args.posting_evidence).read_text()) if args.posting_evidence else None
+        posting = json.loads(Path(args.posting_evidence).read_text(encoding="utf-8")) if args.posting_evidence else None
         context = None
         if operator_args[1] == "confirmation":
             from schonfeld_form import URL
             transition_path = Path(manifest["runtime_paths"]["confirmation"] + ".transition.json")
             if manifest["target"]["url"] == URL and transition_path.exists():
-                review = json.loads(Path(manifest["runtime_paths"]["review"]).read_text())
+                review = json.loads(Path(manifest["runtime_paths"]["review"]).read_text(encoding="utf-8"))
                 context = {"job_id":manifest['job_id'], "journal_path":manifest['runtime_paths']['submit_journal'],
-                           "review_evidence":review.get('review'), "transition":json.loads(transition_path.read_text())}
+                           "review_evidence":review.get('review'), "transition":json.loads(transition_path.read_text(encoding="utf-8"))}
         transport = WorkerTransport(client, target=manifest["target"], official_posting=posting, confirmation_context=context)
         return production_operator.main(
             operator_args,

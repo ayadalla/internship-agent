@@ -82,14 +82,14 @@ def test_tracker_duplicate_check_requires_explicit_opt_in(monkeypatch):
 def test_orchestrator_uses_existing_queue_for_exact_dedup_without_sheets(tmp_path, monkeypatch):
     monkeypatch.setattr(scanner, "tracker_duplicate", no_tracker)
     resume = tmp_path / "resume.pdf"
-    resume.write_text("synthetic test resume")
+    resume.write_text("synthetic test resume", encoding="utf-8")
     p = {**profile(), "name": {"full": "Test User"},
          "contact": {"email": "test@example.com", "phone": "555-1111"},
          "resume": {"primary": str(resume)}}
     profile_path = tmp_path / "profile.json"
-    profile_path.write_text(json.dumps(p))
+    profile_path.write_text(json.dumps(p), encoding="utf-8")
     candidates = tmp_path / "candidates.json"
-    candidates.write_text(json.dumps([job()]))
+    candidates.write_text(json.dumps([job()]), encoding="utf-8")
     args = (candidates, profile_path, tmp_path / "report.json", tmp_path / "queue.db", tmp_path / "audit.jsonl")
     first = orchestrator.run(*args)
     second = orchestrator.run(*args)
@@ -105,9 +105,9 @@ def test_scanner_cli_reads_local_queue_not_sheets(tmp_path, monkeypatch, capsys)
     queue = orchestrator.ApplicationQueue(queue_path)
     queue.enqueue(company=job()["company"], role=job()["role"], url=job()["url"], ats_platform="Greenhouse")
     profile_path = tmp_path / "profile.json"
-    profile_path.write_text(json.dumps(profile()))
+    profile_path.write_text(json.dumps(profile()), encoding="utf-8")
     candidates = tmp_path / "candidates.json"
-    candidates.write_text(json.dumps([job()]))
+    candidates.write_text(json.dumps([job()]), encoding="utf-8")
     output = tmp_path / "scan.json"
     assert scanner.main([str(candidates), "--profile", str(profile_path), "--queue-db", str(queue_path),
                          "--output", str(output)]) == 0
@@ -172,7 +172,7 @@ def test_canonical_profile_accepts_winter_full_time_internship():
     profile_path = ROOT / "profile.json"
     if not profile_path.exists():
         pytest.skip("profile.json is personal and gitignored; this checks the owner's live profile")
-    canonical = json.loads(profile_path.read_text())
+    canonical = json.loads(profile_path.read_text(encoding="utf-8"))
     if "Winter 2027" not in canonical.get("preferences", {}).get("target_timelines", []):
         pytest.skip("this profile does not target Winter 2027")
     result = scanner.classify(job(role="Software Engineer Intern - Winter 2027 (Full-time)"), canonical)

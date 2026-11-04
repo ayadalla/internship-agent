@@ -12,7 +12,7 @@ PDF_MAGIC = b"%PDF-"
 
 def preflight_profile_resume(profile_path: Path | str) -> dict[str, Any]:
     """Return safe evidence that the profile-selected resume is an allowed PDF."""
-    profile = json.loads(Path(profile_path).read_text())
+    profile = json.loads(Path(profile_path).read_text(encoding="utf-8"))
     resume = profile.get("resume", {})
     primary = resume.get("primary")
     required_filename = resume.get("required_application_filename")

@@ -11,7 +11,7 @@ import oracle_handler
 
 
 def test_inspect_application_fixture_inventories_fields_and_selected_options():
-    fixture_text = (ROOT / "fixtures" / "oracle_application.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "oracle_application.html").read_text(encoding="utf-8")
 
     result = oracle_handler.inspect_html(
         fixture_text,
@@ -44,7 +44,7 @@ def test_inspect_application_fixture_inventories_fields_and_selected_options():
 
 
 def test_inspect_issue_fixture_reports_navigation_targets_and_invalid_country():
-    fixture_text = (ROOT / "fixtures" / "oracle_issues.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "oracle_issues.html").read_text(encoding="utf-8")
 
     result = oracle_handler.inspect_html(
         fixture_text,
@@ -69,7 +69,7 @@ def test_inspect_issue_fixture_reports_navigation_targets_and_invalid_country():
 
 
 def test_inspect_confirmation_fixture_uses_verified_confirmation_evidence():
-    fixture_text = (ROOT / "fixtures" / "oracle_confirmation.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "oracle_confirmation.html").read_text(encoding="utf-8")
 
     result = oracle_handler.inspect_html(
         fixture_text,

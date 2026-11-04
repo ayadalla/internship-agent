@@ -15,9 +15,9 @@ class Response:
 
 def config(tmp_path):
     profile=tmp_path/'profile.json'
-    profile.write_text(json.dumps({'preferences':{'target_roles':['Software Engineer Intern']}}))
+    profile.write_text(json.dumps({'preferences':{'target_roles':['Software Engineer Intern']}}), encoding="utf-8")
     registry=tmp_path/'sources.json'
-    registry.write_text(json.dumps({'version':1,'sources':[{'platform':'greenhouse','token':'schonfeld','approved':True},{'platform':'lever','token':'broken','approved':True}]}))
+    registry.write_text(json.dumps({'version':1,'sources':[{'platform':'greenhouse','token':'schonfeld','approved':True},{'platform':'lever','token':'broken','approved':True}]}), encoding="utf-8")
     return {'runtime_dir':str(tmp_path/'runtime'), 'profile_path':str(profile), 'registry_path':str(registry),
             'worker_socket':str(tmp_path/'not-real.sock'), 'production_enabled':False, 'authorization_db':str(tmp_path/'ledger.db')}
 
@@ -68,8 +68,8 @@ def backend_with_candidate(tmp_path, **kwargs):
     from app_queue import ApplicationQueue
     from test_one_page_production import POSTING
     cfg=config(tmp_path)
-    Path(cfg['profile_path']).write_text(json.dumps(accepted_profile(tmp_path)))
-    Path(cfg['registry_path']).write_text(json.dumps({'version':1,'sources':[{'platform':'greenhouse','token':'schonfeld','approved':True}]}))
+    Path(cfg['profile_path']).write_text(json.dumps(accepted_profile(tmp_path)), encoding="utf-8")
+    Path(cfg['registry_path']).write_text(json.dumps({'version':1,'sources':[{'platform':'greenhouse','token':'schonfeld','approved':True}]}), encoding="utf-8")
     # EXPLICIT SYNTHETIC qualification content; not sourced employer requirements.
     posting={**POSTING, 'content':'<!-- EXPLICIT SYNTHETIC TEST QUALIFICATIONS -->\n<h2>Qualifications</h2><p>Minimum GPA of 3.0</p><p>Graduation between 2027 and 2028</p>',
              'location':{'name':'New York, NY, United States'}}
@@ -91,7 +91,7 @@ def test_automatic_manifest_and_answers_are_private_exact_and_profile_grounded(t
     from test_one_page_production import HTML
     attempt=backend.build_inputs(job, {'id':'new-target','url':job.url}, snapshot={'read_only':True, 'target_id':'new-target', 'url':job.url, 'html':HTML})
     manifest=live_run_manifest.load_manifest(attempt['manifest_path'])
-    answers=json.loads(Path(attempt['answers_path']).read_text())
+    answers=json.loads(Path(attempt['answers_path']).read_text(encoding="utf-8"))
     verify_profile_answers(json.loads(original), answers, tenant='schonfeld')
     assert 'website' not in answers
     assert answers['gpa']=='3.236'
@@ -102,7 +102,7 @@ def test_automatic_manifest_and_answers_are_private_exact_and_profile_grounded(t
     assert backend.profile_path.read_bytes()==original
     for key in ('manifest_path','answers_path','provenance_path'):
         assert stat.S_IMODE(Path(attempt[key]).stat().st_mode)==0o600
-    provenance=json.loads(Path(attempt['provenance_path']).read_text())
+    provenance=json.loads(Path(attempt['provenance_path']).read_text(encoding="utf-8"))
     assert provenance['job_id']==job.id
     assert provenance['source']['token']=='schonfeld'
 
@@ -210,10 +210,10 @@ def test_connected_pipeline_real_stages_generated_inputs_one_shot_confirmation(t
     assert controller.queue.list_jobs()[0].state=='applied'
     manifests=list(backend.root.glob('attempts/*/manifest.json'))
     assert len(manifests)==1
-    manifest=json.loads(manifests[0].read_text())
-    assert json.loads(Path(manifest['runtime_paths']['preparation']).read_text())['status']=='prepared'
-    assert json.loads(Path(manifest['runtime_paths']['review']).read_text())['review']['review_authoritative'] is True
-    assert json.loads(Path(manifest['runtime_paths']['confirmation']).read_text())['portal']['portal_confirmed'] is True
+    manifest=json.loads(manifests[0].read_text(encoding="utf-8"))
+    assert json.loads(Path(manifest['runtime_paths']['preparation']).read_text(encoding="utf-8"))['status']=='prepared'
+    assert json.loads(Path(manifest['runtime_paths']['review']).read_text(encoding="utf-8"))['review']['review_authoritative'] is True
+    assert json.loads(Path(manifest['runtime_paths']['confirmation']).read_text(encoding="utf-8"))['portal']['portal_confirmed'] is True
     assert controller.run_once()['status']=='hourly_limit'
     assert page.clicks==1
 
@@ -224,7 +224,7 @@ def test_preflight_park_has_zero_browser_requests_or_manifest_mutation(tmp_path,
     from autonomous_controller import CandidateParked, atomic_json
     client=FakeWorker()
     backend,job=backend_with_candidate(tmp_path,client=client)
-    catalog=json.loads(backend.catalog_path.read_text())
+    catalog=json.loads(backend.catalog_path.read_text(encoding="utf-8"))
     if case=='maango':
         job=replace(job,company='Google')
         catalog[job.url]['company']='Google'
@@ -234,9 +234,9 @@ def test_preflight_park_has_zero_browser_requests_or_manifest_mutation(tmp_path,
         value['url']=job.url
         catalog[job.url]=value
     else:
-        profile=json.loads(backend.profile_path.read_text())
+        profile=json.loads(backend.profile_path.read_text(encoding="utf-8"))
         del profile['application_facts']['education_start_month']
-        backend.profile_path.write_text(json.dumps(profile))
+        backend.profile_path.write_text(json.dumps(profile), encoding="utf-8")
     atomic_json(backend.catalog_path,catalog)
     with pytest.raises(CandidateParked) as error:
         backend.prepare(job,lambda **_:None)
@@ -258,7 +258,7 @@ def test_existing_matching_manifest_parks_job_without_worker_or_replay(tmp_path)
     client=FakeWorker()
     backend,job=backend_with_candidate(tmp_path,client=client)
     history=tmp_path/'history'; history.mkdir()
-    (history/'manifest.json').write_text(json.dumps({'schema_version':1, 'identity':{**IDENTITY,'platform':'greenhouse','tenant':'schonfeld'},'target':{'id':'other-session','url':job.url}}))
+    (history/'manifest.json').write_text(json.dumps({'schema_version':1, 'identity':{**IDENTITY,'platform':'greenhouse','tenant':'schonfeld'},'target':{'id':'other-session','url':job.url}}), encoding="utf-8")
     backend.config['historical_artifact_roots']=[str(history)]
     with pytest.raises(CandidateParked, match='historical_application_requires_reconciliation'):
         backend.prepare(job,lambda **_:None)

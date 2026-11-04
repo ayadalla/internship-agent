@@ -188,7 +188,7 @@ def prepare_live_job(
 
 
 def _load_json_object(path: str, *, label: str) -> dict:
-    payload = json.loads(Path(path).read_text())
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise LivePreparationError(f"{label} must be a JSON object")
     return payload
@@ -462,7 +462,7 @@ def main(
                 apply_known=apply_operation,
             )
         sanitized = _sanitize_review_evidence(result)
-        Path(args.output).write_text(json.dumps(sanitized, indent=2, sort_keys=True) + "\n")
+        Path(args.output).write_text(json.dumps(sanitized, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({
             "error": str(exc),

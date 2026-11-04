@@ -35,7 +35,7 @@ class ExecutionJournal:
             conn.execute("CREATE TABLE IF NOT EXISTS journal_quarantine (line_number INTEGER PRIMARY KEY)")
             imported = conn.execute("SELECT 1 FROM journal_metadata WHERE key = 'legacy_imported'").fetchone()
             if legacy and not imported:
-                for number, line in enumerate(self.path.read_text(errors="replace").splitlines(), 1):
+                for number, line in enumerate(self.path.read_text(errors="replace", encoding="utf-8").splitlines(), 1):
                     if not line.strip():
                         continue
                     try:

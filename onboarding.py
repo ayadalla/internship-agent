@@ -13,6 +13,7 @@ from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 
+import platform_io
 from canonical_answers import CanonicalAnswerError, FACT_PATHS, INVERSE_FACTS, fact_paths, resolve_fact
 
 
@@ -360,7 +361,7 @@ def _save(path, profile):
     fd, temporary = tempfile.mkstemp(prefix=".onboarding-", dir=path.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            os.fchmod(stream.fileno(), 0o600)
+            platform_io.set_private_mode(stream.fileno())
             json.dump(profile, stream, indent=2, allow_nan=False)
             stream.write("\n")
             stream.flush()
@@ -411,7 +412,7 @@ def main(argv=None, *, input_fn=input, output_fn=print):
     try:
         if not args.check:
             _safe_destination(path)
-        existing = json.loads(path.read_text()) if path.exists() else {}
+        existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
         if not isinstance(existing, dict) or not isinstance(existing.get("company_disclosures", []), list):
             raise ValueError("Invalid profile shape")
         if args.check:

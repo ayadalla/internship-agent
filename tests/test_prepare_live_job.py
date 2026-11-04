@@ -184,9 +184,9 @@ def test_cli_fresh_binds_applies_explicit_answers_and_persists_sanitized_evidenc
             return page
 
     profile_path = tmp_path / "profile.json"
-    profile_path.write_text(json.dumps({"personal": {"first_name": "Kevin"}}))
+    profile_path.write_text(json.dumps({"personal": {"first_name": "Kevin"}}), encoding="utf-8")
     answers_path = tmp_path / "approved-answers.json"
-    answers_path.write_text(json.dumps({"#first-name": "Kevin"}))
+    answers_path.write_text(json.dumps({"#first-name": "Kevin"}), encoding="utf-8")
     output_path = tmp_path / "review-evidence.json"
     dispatched: list[dict] = []
 
@@ -228,7 +228,7 @@ def test_cli_fresh_binds_applies_explicit_answers_and_persists_sanitized_evidenc
     assert dispatched == [{"html_text": "<html>sanitized fixture</html>", "page_url": page_url}] * 2
     assert page.operations == [("replace_text", "#first-name", "Kevin")]
     assert page.closed is True
-    persisted_text = output_path.read_text()
+    persisted_text = output_path.read_text(encoding="utf-8")
     assert "Kevin" not in persisted_text
     persisted = json.loads(persisted_text)
     assert persisted["submission_enabled"] is False

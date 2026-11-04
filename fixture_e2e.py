@@ -46,12 +46,12 @@ def run_fixture_flow(
         queue=queue,
         leased_job=leased,
         journal=journal,
-        html_text=Path(fixture_path).read_text(),
+        html_text=Path(fixture_path).read_text(encoding="utf-8"),
         expected_resume_basename=expected_resume_basename,
         now="2026-08-25T00:00:01+00:00",
         plan_dir=Path(plan_dir),
     )
-    plan = json.loads(Path(prepared["plan_path"]).read_text())
+    plan = json.loads(Path(prepared["plan_path"]).read_text(encoding="utf-8"))
     artifact = build_submission_artifact(
         candidate,
         confirmation_url=confirmation_url,
@@ -91,7 +91,7 @@ def run_njoyn_fixture_flow(
     """Run CGI/Njoyn preparation with resume and parser-review evidence."""
     result = run_fixture_flow(**kwargs)
     parser_review = inspect_njoyn_html(
-        Path(parser_fixture_path).read_text(),
+        Path(parser_fixture_path).read_text(encoding="utf-8"),
         page_url=kwargs["candidate"]["url"],
     )
     required_corrections = parser_review["parser_mismatches"]

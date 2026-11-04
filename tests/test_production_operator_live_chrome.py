@@ -29,7 +29,7 @@ def _manifest(tmp_path: Path, *, target_id: str) -> tuple[Path, Path, dict]:
                 }
             }
         )
-    )
+    , encoding="utf-8")
     answers = runtime / "approved.json"
     answers.write_text(
         json.dumps(
@@ -43,7 +43,7 @@ def _manifest(tmp_path: Path, *, target_id: str) -> tuple[Path, Path, dict]:
                 "sponsorship": "No",
             }
         )
-    )
+    , encoding="utf-8")
     digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
     manifest = {
         "schema_version": 1,
@@ -84,7 +84,7 @@ def _manifest(tmp_path: Path, *, target_id: str) -> tuple[Path, Path, dict]:
         },
     }
     path = runtime / "manifest.json"
-    path.write_text(json.dumps(manifest))
+    path.write_text(json.dumps(manifest), encoding="utf-8")
     return path, answers, manifest
 
 
@@ -283,7 +283,7 @@ def test_normal_chrome_preflight_uses_read_only_exact_target_without_page_mutati
     import production_operator
 
     manifest_path, _, _ = _manifest(tmp_path, target_id="normal-target")
-    fixture_html = (ROOT / "fixtures" / "local_operator_e2e.html").read_text()
+    fixture_html = (ROOT / "fixtures" / "local_operator_e2e.html").read_text(encoding="utf-8")
     calls = []
 
     class ReadOnlyPage:

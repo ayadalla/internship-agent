@@ -16,6 +16,11 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+pytestmark = pytest.mark.skipif(
+    not hasattr(socket, "AF_UNIX"),
+    reason="worker bridge uses Unix domain sockets; no Windows transport yet",
+)
+
 URL = "https://job-boards.greenhouse.io/schonfeld/jobs/8171772"
 
 
@@ -69,7 +74,7 @@ def test_worker_health_uses_existing_unix_protocol_not_http():
 def test_worker_refuses_non_private_socket_before_connection(tmp_path):
     bridge = module()
     path = tmp_path / "not-a-socket"
-    path.write_text("not a worker")
+    path.write_text("not a worker", encoding="utf-8")
     with pytest.raises(ValueError, match="private same-owner Unix socket"):
         bridge.WorkerClient(str(path)).health()
 
@@ -129,8 +134,8 @@ def test_wrapper_runs_existing_preflight_using_injected_worker_only(tmp_path, ca
     from test_production_operator_live import _write_live_inputs
     manifest_path, _, manifest = _write_live_inputs(tmp_path)
     manifest["target"]["url"] = URL
-    manifest_path.write_text(json.dumps(manifest))
-    html = (ROOT / "fixtures" / "local_operator_e2e.html").read_text()
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    html = (ROOT / "fixtures" / "local_operator_e2e.html").read_text(encoding="utf-8")
     replies = [{"ok": True, "data": {"ready": True}}]
     replies += [{"ok": True, "data": [{"targetId": "target-abc", "url": URL, "type": "page"}]}]
     replies += [{"ok": True, "data": {"binding": {"targetId": "target-abc", "url": URL}, "result": {"result": {"value": value}}}} for value in [URL, "Fixture", "Fixture body", html] * 2]

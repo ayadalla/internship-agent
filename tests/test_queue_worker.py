@@ -33,7 +33,7 @@ def test_prepare_next_job_skips_platform_with_open_circuit_and_leases_other_ats(
     result = queue_worker.prepare_next_job(
         queue=queue,
         journal=execution_journal.ExecutionJournal(tmp_path / "journal.jsonl"),
-        html_loader=lambda leased_job: (ROOT / "fixtures" / "lever_application.html").read_text(),
+        html_loader=lambda leased_job: (ROOT / "fixtures" / "lever_application.html").read_text(encoding="utf-8"),
         expected_resume_basename="Kevin_Pyo_Resume.pdf",
         now="2026-08-25T08:01:00+00:00",
         lease_seconds=300,
@@ -60,7 +60,7 @@ def test_prepare_next_job_leases_discovered_job_writes_plan_and_finishes_prepare
     result = queue_worker.prepare_next_job(
         queue=queue,
         journal=journal,
-        html_loader=lambda leased_job: (ROOT / "fixtures" / "greenhouse.html").read_text(),
+        html_loader=lambda leased_job: (ROOT / "fixtures" / "greenhouse.html").read_text(encoding="utf-8"),
         expected_resume_basename="Kevin_Pyo_Resume.pdf",
         now="2026-08-25T07:35:00+00:00",
         lease_seconds=300,
@@ -68,7 +68,7 @@ def test_prepare_next_job_leases_discovered_job_writes_plan_and_finishes_prepare
     )
 
     expected_plan = prepare_job.prepare_saved_html(
-        html_text=(ROOT / "fixtures" / "greenhouse.html").read_text(),
+        html_text=(ROOT / "fixtures" / "greenhouse.html").read_text(encoding="utf-8"),
         page_url=queued_job.url,
         expected_resume_basename="Kevin_Pyo_Resume.pdf",
     )
@@ -76,7 +76,7 @@ def test_prepare_next_job_leases_discovered_job_writes_plan_and_finishes_prepare
     assert result is not None
     assert result["recovered"] is False
     assert result["plan_path"] == str(plan_dir / "job-1-attempt-1.json")
-    assert json.loads(Path(result["plan_path"]).read_text()) == expected_plan
+    assert json.loads(Path(result["plan_path"]).read_text(encoding="utf-8")) == expected_plan
     assert result["queue_job"]["state"] == "prepared"
     assert result["queue_job"]["attempt_count"] == 1
 
@@ -114,7 +114,7 @@ def test_prepare_next_job_retry_uses_attempt_specific_plan_path(tmp_path):
     result = queue_worker.prepare_next_job(
         queue=queue,
         journal=journal,
-        html_loader=lambda leased_job: (ROOT / "fixtures" / "greenhouse.html").read_text(),
+        html_loader=lambda leased_job: (ROOT / "fixtures" / "greenhouse.html").read_text(encoding="utf-8"),
         expected_resume_basename="Kevin_Pyo_Resume.pdf",
         now="2026-08-25T07:37:30+00:00",
         lease_seconds=300,
@@ -143,11 +143,11 @@ def test_resume_or_prepare_leased_job_recovers_after_plan_was_already_written(tm
     plan_dir.mkdir()
     plan_path = plan_dir / "job-1-attempt-1.json"
     existing_plan = prepare_job.prepare_saved_html(
-        html_text=(ROOT / "fixtures" / "greenhouse.html").read_text(),
+        html_text=(ROOT / "fixtures" / "greenhouse.html").read_text(encoding="utf-8"),
         page_url=job.url,
         expected_resume_basename="Kevin_Pyo_Resume.pdf",
     )
-    plan_path.write_text(json.dumps(existing_plan))
+    plan_path.write_text(json.dumps(existing_plan), encoding="utf-8")
     journal.append(
         job_id=leased.id,
         attempt_count=leased.attempt_count,
@@ -173,7 +173,7 @@ def test_resume_or_prepare_leased_job_recovers_after_plan_was_already_written(tm
     assert result["recovered"] is True
     assert result["plan_path"] == str(plan_path)
     assert result["queue_job"]["state"] == "prepared"
-    assert json.loads(plan_path.read_text()) == existing_plan
+    assert json.loads(plan_path.read_text(encoding="utf-8")) == existing_plan
 
     steps = [entry["step"] for entry in journal.read_all()]
     assert steps == ["prepared_plan_written", "lease_finished"]
@@ -233,7 +233,7 @@ def test_resume_or_prepare_leased_job_refuses_malformed_recovered_plan_artifact(
     journal = execution_journal.ExecutionJournal(tmp_path / "journal.jsonl")
     plan_path = tmp_path / "plans" / "job-1-attempt-1.json"
     plan_path.parent.mkdir()
-    plan_path.write_text("{not valid json")
+    plan_path.write_text("{not valid json", encoding="utf-8")
     journal.append(
         job_id=leased.id,
         attempt_count=leased.attempt_count,
@@ -331,7 +331,7 @@ def test_main_uses_profile_resume_preflight_in_persisted_plan(tmp_path, capsys):
     profile.write_text(json.dumps({"resume": {
         "primary": str(resume), "required_application_filename": resume.name,
         "do_not_use_for_applications": [],
-    }}))
+    }}), encoding="utf-8")
 
     exit_code = queue_worker.main([
         "--queue-db", str(tmp_path / "queue.db"), "--journal", str(tmp_path / "journal.jsonl"),
@@ -342,7 +342,7 @@ def test_main_uses_profile_resume_preflight_in_persisted_plan(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    plan = json.loads(Path(payload["result"]["plan_path"]).read_text())
+    plan = json.loads(Path(payload["result"]["plan_path"]).read_text(encoding="utf-8"))
     assert plan["resume_preflight"]["basename"] == "Kevin_Pyo_Resume.pdf"
     assert plan["resume_preflight"]["verified"] is True
     assert plan["resume_verified"] is True
@@ -493,7 +493,7 @@ def test_main_terminally_closes_withdrawn_posting_before_preparation(tmp_path, c
         ats_platform="Greenhouse",
     )
     closed_page = tmp_path / "withdrawn.html"
-    closed_page.write_text("<html><body>This job is no longer available.</body></html>")
+    closed_page.write_text("<html><body>This job is no longer available.</body></html>", encoding="utf-8")
 
     exit_code = queue_worker.main([
         "--queue-db", str(tmp_path / "queue.db"),
@@ -521,7 +521,7 @@ def test_main_terminally_closes_posting_that_is_no_longer_accepting_applications
         ats_platform="Greenhouse",
     )
     closed_page = tmp_path / "closed.html"
-    closed_page.write_text("<html><body>This job is no longer accepting applications.</body></html>")
+    closed_page.write_text("<html><body>This job is no longer accepting applications.</body></html>", encoding="utf-8")
 
     exit_code = queue_worker.main([
         "--queue-db", str(tmp_path / "queue.db"),

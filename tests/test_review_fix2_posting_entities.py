@@ -57,16 +57,16 @@ def test_fresh_recheck_rejects_old_hash_bound_decision_that_lost_visible_text(tm
     attempt=backend.build_inputs(job,{'id':'new-target','url':job.url},snapshot={
         'read_only':True,'target_id':'new-target','url':job.url,'html':HTML})
     path=Path(attempt['provenance_path'])
-    saved=json.loads(path.read_text())
+    saved=json.loads(path.read_text(encoding="utf-8"))
     posting={**saved['official_posting'], 'content':
         '<h2>Qualifications</h2><p>Minimum GPA of 3.0</p><p>&lt;U.S. citizenship required&gt;</p>'}
     # Exact buggy pre-fix decision, with correct raw-content/profile binding.
     old_decision={'version':1, 'posting_sha256':content_hash(posting),
-        'profile_sha256':content_hash(json.loads(backend.profile_path.read_text())),
+        'profile_sha256':content_hash(json.loads(backend.profile_path.read_text(encoding="utf-8"))),
         'status':'qualified', 'reason':'explicit_canonical_requirements_matched',
         'checks':[{'constraint':'gpa','verified':True}]}
     saved.update(official_posting=posting, qualification_decision=old_decision)
-    path.write_text(json.dumps(saved))
+    path.write_text(json.dumps(saved), encoding="utf-8")
     attempt['qualification_binding']=content_hash(old_decision)
     backend.opener=lambda *_:Response({'jobs':[posting]})
     with pytest.raises(CandidateParked) as error:

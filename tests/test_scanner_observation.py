@@ -8,12 +8,12 @@ def test_nonlive_pilot_stays_observation_only_in_cli_report(tmp_path):
     profile = tmp_path / "profile.json"
     profile.write_text(json.dumps({"preferences": {"target_roles": ["Software Engineer Intern"],
                                                   "target_levels": ["Intern"],
-                                                  "location_preference": "United States"}}))
+                                                  "location_preference": "United States"}}), encoding="utf-8")
     source = tmp_path / "input.json"
     job = {"company": "Example Research", "role": "Software Engineer Intern",
            "url": "https://example.com/jobs/1", "location": "United States",
            "live_verified": False, "pilot_only": True, "source": "synthetic saved evidence"}
-    source.write_text(json.dumps([job]))
+    source.write_text(json.dumps([job]), encoding="utf-8")
     queue = tmp_path / "queue.sqlite3"
     with sqlite3.connect(queue) as db:
         db.execute("CREATE TABLE application_queue (normalized_url TEXT, status TEXT)")
@@ -24,7 +24,7 @@ def test_nonlive_pilot_stays_observation_only_in_cli_report(tmp_path):
 
     assert scanner.main([str(source), "--profile", str(profile), "--queue-db", str(queue),
                          "--output", str(output)]) == 0
-    payload = json.loads(output.read_text())
+    payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["new"] == 0
     assert payload["auto_apply_queue"] == []
     assert payload["manual_only"] == []
@@ -37,14 +37,14 @@ def test_nonlive_pilot_stays_observation_only_in_cli_report(tmp_path):
 
 def _report(tmp_path, jobs, *extra):
     source = tmp_path / "source.json"
-    source.write_text(json.dumps(jobs))
+    source.write_text(json.dumps(jobs), encoding="utf-8")
     profile = tmp_path / "profile.json"
     profile.write_text(json.dumps({"preferences": {"target_roles": ["Software Engineer Intern"],
-                                                  "target_levels": ["Intern"]}}))
+                                                  "target_levels": ["Intern"]}}), encoding="utf-8")
     output = tmp_path / "result.json"
     assert scanner.main([str(source), "--profile", str(profile), "--queue-db",
                          str(tmp_path / "absent.sqlite3"), "--output", str(output), *extra]) == 0
-    return json.loads(output.read_text())
+    return json.loads(output.read_text(encoding="utf-8"))
 
 
 JOB = {"company": "Example Research", "role": "Software Engineer Intern",

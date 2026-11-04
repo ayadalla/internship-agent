@@ -63,7 +63,7 @@ def test_manifest_loads_only_closed_versioned_exact_identity_contract(tmp_path):
 
     payload = _manifest(tmp_path)
     path = tmp_path / "manifest.json"
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps(payload), encoding="utf-8")
 
     loaded = live_run_manifest.load_manifest(
         path,

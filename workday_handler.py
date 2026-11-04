@@ -211,7 +211,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--expected-resume-basename")
     args = parser.parse_args(argv)
     payload = inspect_html(
-        Path(args.html_path).read_text(),
+        Path(args.html_path).read_text(encoding="utf-8"),
         page_url=args.page_url,
         expected_resume_basename=args.expected_resume_basename,
     )

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import production_operator as op
+from symlink_support import symlink_or_skip
 import submission_ledger
 from posting_qualifications import content_hash
 from test_production_operator_live import _write_live_inputs, _sha256
@@ -23,22 +24,22 @@ def current_attempt(tmp_path, monkeypatch):
     current.parent.mkdir(parents=True)
     path.parent.rename(current)
     path=current/'manifest.json'
-    profile=json.loads((current/'profile.json').read_text())
+    profile=json.loads((current/'profile.json').read_text(encoding="utf-8"))
     profile['resume']['primary']=str(current/'Resume.pdf')
-    (base/'profile.json').write_text(json.dumps(profile))
+    (base/'profile.json').write_text(json.dumps(profile), encoding="utf-8")
     manifest['mode']='production_live'
     manifest['profile'].update(path=str(base/'profile.json'), sha256=_sha256(base/'profile.json'))
     manifest['resume']['path']=str(current/'Resume.pdf')
     manifest['runtime_paths']={key:str(current/Path(value).name)
                                for key,value in manifest['runtime_paths'].items()}
-    path.write_text(json.dumps(manifest))
+    path.write_text(json.dumps(manifest), encoding="utf-8")
     review=authoritative_review()
     review['binding'].update(target_id=manifest['target']['id'], page_url=manifest['target']['url'],
                             **{k:manifest['identity'][k] for k in ('company','role','requisition')})
     review.pop('review_evidence_sha256')
     review['review_evidence_sha256']=content_hash(review)
     Path(manifest['runtime_paths']['review']).write_text(json.dumps({
-        'status':'reviewed', 'job_identity':op._manifest_job_identity(manifest), 'review':review}))
+        'status':'reviewed', 'job_identity':op._manifest_job_identity(manifest), 'review':review}), encoding="utf-8")
     monkeypatch.setattr(Path, 'home', lambda:home)
     monkeypatch.setattr(submission_ledger, 'CANONICAL_LEDGER_PATH', base/'runtime/submission-ledger.sqlite3')
     # Do not mock validation, preflight, migration, issuance, or the shared store.
@@ -83,9 +84,9 @@ def test_other_history_is_never_exempted_by_current_manifest(current_attempt, hi
     old['runtime_paths']['submit_journal']=str(old_dir/'submit.jsonl')
     if history=='identical_copy':
         old=manifest  # Same content and absent journal, but NOT the validated path.
-    (old_dir/'manifest.json').write_text('{' if history=='malformed_manifest' else json.dumps(old))
+    (old_dir/'manifest.json').write_text('{' if history=='malformed_manifest' else json.dumps(old), encoding="utf-8")
     if history in {'intent','malformed_journal'}:
-        Path(old['runtime_paths']['submit_journal']).write_text(json.dumps(intent(old)) if history=='intent' else '{')
+        Path(old['runtime_paths']['submit_journal']).write_text(json.dumps(intent(old)) if history=='intent' else '{', encoding="utf-8")
     with pytest.raises(op.OperatorBlockedError, match='registered historical evidence'):
         authorize(current_attempt)
     assert not Path(manifest['runtime_paths']['authorization_handoff']).exists()
@@ -98,9 +99,9 @@ def test_current_runtime_evidence_is_not_a_fresh_pre_intent_exception(current_at
     target=Path(paths['authorization_db'] if artifact=='old_authorization_db' else
                 paths['authorization_handoff'] if 'handoff' in artifact else paths['submit_journal'])
     if artifact.startswith('dangling'):
-        target.symlink_to(target.parent/'unavailable')
+        symlink_or_skip(target, target.parent/'unavailable')
     else:
-        target.write_text(json.dumps(intent(manifest)) if artifact=='intent' else '' if artifact=='empty_journal' else '{')
+        target.write_text(json.dumps(intent(manifest)) if artifact=='intent' else '' if artifact=='empty_journal' else '{', encoding="utf-8")
     before=target.read_bytes() if target.is_file() else None
     with pytest.raises((ValueError, PermissionError)):
         authorize(current_attempt)
@@ -157,7 +158,7 @@ def test_current_manifest_replaced_after_validation_is_not_exempt(current_attemp
             path.unlink(missing_ok=True)
         else:
             replacement={**manifest, drift:'sanitized_local' if drift=='mode' else 'different-validated-attempt'}
-            path.write_text(json.dumps(replacement))
+            path.write_text(json.dumps(replacement), encoding="utf-8")
         return result
     monkeypatch.setattr(op, '_verified_profile_resume', replace_after_preflight)
     with pytest.raises(op.OperatorBlockedError, match='pre-intent|registered historical evidence'):
@@ -167,6 +168,6 @@ def test_current_manifest_replaced_after_validation_is_not_exempt(current_attemp
 def test_missing_current_journal_outside_attempt_scope_is_not_exempt(current_attempt):
     path, manifest, _, _=current_attempt
     manifest['runtime_paths']['submit_journal']=str(path.parent.parent/'outside.jsonl')
-    path.write_text(json.dumps(manifest))
+    path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(op.OperatorBlockedError, match='registered historical evidence'):
         authorize(current_attempt)

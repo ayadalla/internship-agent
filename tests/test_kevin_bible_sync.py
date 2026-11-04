@@ -58,7 +58,7 @@ def test_sync_caches_source_timestamp_and_reports_profile_precedence_without_pii
         now="2026-08-25T10:00:00Z",
     )
 
-    cached = json.loads(cache_path.read_text())
+    cached = json.loads(cache_path.read_text(encoding="utf-8"))
     assert cached["source"] == {
         "doc_id": "doc-123",
         "revision_id": "revision-42",
@@ -101,7 +101,7 @@ answer: Spring 2028
         now="2026-08-25T12:00:00Z",
     )
 
-    cached = json.loads(cache_path.read_text())
+    cached = json.loads(cache_path.read_text(encoding="utf-8"))
     assert cached["answers"] == [
         {
             "question_key": "portfolio_url",
@@ -116,7 +116,7 @@ answer: Spring 2028
 def test_main_uses_private_default_cache_and_emits_sanitized_summary(tmp_path, monkeypatch, capsys):
     default_cache = tmp_path / "runtime" / "kevin-bible-cache.json"
     profile_path = tmp_path / "profile.json"
-    profile_path.write_text("{}")
+    profile_path.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(kevin_bible_sync, "DEFAULT_CACHE_PATH", default_cache)
     monkeypatch.setattr(
         kevin_bible_sync,

@@ -16,12 +16,12 @@ import setup_diagnostics
 
 def write_profile(directory):
     resume_path = directory / "resume.pdf"
-    resume_path.write_text("resume fixture")
+    resume_path.write_text("resume fixture", encoding="utf-8")
     profile_path = directory / "profile.json"
     profile_path.write_text(json.dumps({
         "contact": {"email": "test@example.com"},
         "resume": {"primary": str(resume_path)},
-    }))
+    }), encoding="utf-8")
     return profile_path
 
 
@@ -34,8 +34,9 @@ def test_main_defaults_to_profile_next_to_script_with_isolated_home(tmp_path, mo
     script = checkout / "setup_diagnostics.py"
     shutil.copyfile(setup_diagnostics.__file__, script)
     token = tmp_path / "token.json"
-    token.write_text("token fixture")
+    token.write_text("token fixture", encoding="utf-8")
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
     monkeypatch.chdir(home)
 
     diagnostics = runpy.run_path(str(script))
@@ -50,6 +51,7 @@ def test_main_defaults_to_profile_next_to_script_with_isolated_home(tmp_path, mo
 def test_main_skips_optional_sheets_when_token_is_absent(tmp_path, monkeypatch, capsys):
     profile_path = write_profile(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     diagnostics = runpy.run_path(setup_diagnostics.__file__)
 
     exit_code = diagnostics["main"](["--profile", str(profile_path), "--skip-browser"])
@@ -64,6 +66,7 @@ def test_main_skips_optional_sheets_when_token_is_absent(tmp_path, monkeypatch, 
 def test_main_require_sheets_blocks_when_default_token_is_absent(tmp_path, monkeypatch, capsys):
     profile_path = write_profile(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     diagnostics = runpy.run_path(setup_diagnostics.__file__)
 
     exit_code = diagnostics["main"]([
@@ -117,7 +120,7 @@ def test_run_checks_blocks_missing_or_invalid_resume_path(tmp_path, resume):
     profile_path = tmp_path / "profile.json"
     profile_path.write_text(json.dumps({
         "contact": {"email": "test@example.com"}, "resume": resume,
-    }))
+    }), encoding="utf-8")
 
     report = setup_diagnostics.run_checks(profile_path, skip_browser=True)
 
@@ -131,7 +134,7 @@ def test_main_reports_nul_resume_path_as_blocking_json(tmp_path, capsys):
     profile_path.write_text(json.dumps({
         "contact": {"email": "test@example.com"},
         "resume": {"primary": str(tmp_path / "resume\x00.pdf")},
-    }))
+    }), encoding="utf-8")
 
     exit_code = setup_diagnostics.main(["--profile", str(profile_path), "--skip-browser"])
 
@@ -152,7 +155,7 @@ def test_run_checks_blocks_directory_resume(tmp_path, monkeypatch, resume_value)
     profile_path = tmp_path / "profile.json"
     profile_path.write_text(json.dumps({
         "contact": {"email": "test@example.com"}, "resume": {"primary": resume_value},
-    }))
+    }), encoding="utf-8")
 
     report = setup_diagnostics.run_checks(profile_path, skip_browser=True)
 
@@ -170,7 +173,7 @@ def test_run_checks_blocks_directory_resume(tmp_path, monkeypatch, resume_value)
 def test_main_reports_missing_or_unreadable_profile_as_json(tmp_path, capsys, profile_kind, error_code):
     profile_path = tmp_path / "profile.json"
     if profile_kind == "malformed":
-        profile_path.write_text('{"resume":')
+        profile_path.write_text('{"resume":', encoding="utf-8")
     elif profile_kind == "directory":
         profile_path.mkdir()
     elif profile_kind == "invalid_utf8":
@@ -193,7 +196,7 @@ def test_run_checks_blocks_malformed_profile_structure_without_browser(tmp_path,
     profile_path = write_profile(tmp_path)
     if isinstance(profile, dict):
         profile = {"resume": {"primary": str(tmp_path / "resume.pdf")}, **profile}
-    profile_path.write_text(json.dumps(profile))
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
 
     report = setup_diagnostics.run_checks(
         profile_path, probe_browser=lambda url: pytest.fail("Browser must not be probed"),
@@ -227,6 +230,7 @@ def test_resume_stat_failure_returns_blocking_report_without_traceback(
     monkeypatch.setattr(Path, 'stat', failing_stat)
     monkeypatch.setenv('HOME', str(tmp_path))
 
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     if entrypoint == 'cli':
         monkeypatch.setattr(sys, 'argv', [setup_diagnostics.__file__, '--profile', str(profile_path), '--skip-browser'])
         with pytest.raises(SystemExit) as exc:
@@ -280,9 +284,9 @@ def test_run_checks_blocks_empty_resume_file(tmp_path):
 @pytest.mark.parametrize("email", [None, "", "   ", 42, ["test@example.com"], {"value": "test@example.com"}])
 def test_run_checks_blocks_invalid_contact_email(tmp_path, email):
     profile_path = write_profile(tmp_path)
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
     profile["contact"]["email"] = email
-    profile_path.write_text(json.dumps(profile))
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
 
     report = setup_diagnostics.run_checks(profile_path, skip_browser=True)
 
@@ -299,7 +303,7 @@ def test_run_checks_reports_blocking_profile_issues_without_touching_browser(tmp
                 "resume": {"primary": str(tmp_path / "missing-resume.pdf")},
             }
         )
-    )
+    , encoding="utf-8")
 
     calls: list[str] = []
 
@@ -326,8 +330,8 @@ def test_main_can_skip_browser_and_still_report_ready_for_offline_setup(tmp_path
     profile_path = tmp_path / "profile.json"
     resume_path = tmp_path / "resume.pdf"
     oauth_token = tmp_path / "google_token.json"
-    resume_path.write_text("resume fixture")
-    oauth_token.write_text("token fixture")
+    resume_path.write_text("resume fixture", encoding="utf-8")
+    oauth_token.write_text("token fixture", encoding="utf-8")
     profile_path.write_text(
         json.dumps(
             {
@@ -335,7 +339,7 @@ def test_main_can_skip_browser_and_still_report_ready_for_offline_setup(tmp_path
                 "resume": {"primary": str(resume_path)},
             }
         )
-    )
+    , encoding="utf-8")
 
     exit_code = setup_diagnostics.main(
         [

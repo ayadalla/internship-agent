@@ -187,7 +187,7 @@ def run(*, broad_script: Path, sde_script: Path, queue_db: Path, commit: bool, o
             enqueue_job=default_enqueue_job_factory(queue_db),
         )
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2) + "\n")
+    output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return report
 
 

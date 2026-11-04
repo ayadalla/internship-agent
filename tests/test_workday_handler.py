@@ -11,7 +11,7 @@ import workday_handler
 
 
 def test_inspect_application_fixture_inventories_wizard_and_verifies_resume():
-    fixture_text = (ROOT / "fixtures" / "workday.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "workday.html").read_text(encoding="utf-8")
 
     result = workday_handler.inspect_html(
         fixture_text,
@@ -47,7 +47,7 @@ def test_inspect_application_fixture_inventories_wizard_and_verifies_resume():
 
 
 def test_inspect_live_entrypoint_fixture_detects_listing_and_apply_metadata():
-    fixture_text = (ROOT / "fixtures" / "workday_live_entrypoint.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "workday_live_entrypoint.html").read_text(encoding="utf-8")
 
     result = workday_handler.inspect_html(
         fixture_text,
@@ -67,7 +67,7 @@ def test_inspect_live_entrypoint_fixture_detects_listing_and_apply_metadata():
 
 
 def test_inspect_parsed_resume_fixture_reports_mismatches_and_save_draft():
-    fixture_text = (ROOT / "fixtures" / "workday_parse_issues.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "workday_parse_issues.html").read_text(encoding="utf-8")
 
     result = workday_handler.inspect_html(
         fixture_text,
@@ -94,7 +94,7 @@ def test_inspect_parsed_resume_fixture_reports_mismatches_and_save_draft():
 
 
 def test_inspect_manual_gate_fixture_reports_every_human_gate():
-    fixture_text = (ROOT / "fixtures" / "workday_manual_gates.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "workday_manual_gates.html").read_text(encoding="utf-8")
 
     result = workday_handler.inspect_html(
         fixture_text,
@@ -123,7 +123,7 @@ def test_inspect_html_fails_closed_on_identity_verification_requirement():
 
 
 def test_inspect_confirmation_fixture_requires_success_and_extracts_reference_id():
-    fixture_text = (ROOT / "fixtures" / "workday_confirmation.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "workday_confirmation.html").read_text(encoding="utf-8")
 
     result = workday_handler.inspect_html(
         fixture_text,
@@ -154,7 +154,7 @@ def test_main_fails_closed_for_manual_gates_and_emits_json(capsys):
 
 
 def test_inspect_start_application_fixture_exposes_safe_non_submitting_actions():
-    fixture_text = (ROOT / "fixtures" / "workday_start_application.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "workday_start_application.html").read_text(encoding="utf-8")
 
     result = workday_handler.inspect_html(
         fixture_text,

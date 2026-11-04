@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable
 
+import platform_io
 import prepare_job
 from app_queue import ApplicationQueue, LeaseLostError, QueueJob
 from execution_journal import ExecutionJournal
@@ -95,11 +96,7 @@ def _write_plan(path: Path, payload: dict[str, Any]) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
-        directory = os.open(path.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
+        platform_io.fsync_directory(path.parent)
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
@@ -173,7 +170,7 @@ def resume_or_prepare_leased_job(
         if not plan_path.is_file():
             raise ValueError(f"Invalid recovered plan artifact: {plan_path}")
         try:
-            recovered_payload = json.loads(plan_path.read_text())
+            recovered_payload = json.loads(plan_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             raise ValueError(f"Invalid recovered plan artifact: {plan_path}") from exc
         if not isinstance(recovered_payload, dict):

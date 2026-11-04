@@ -52,7 +52,7 @@ def test_submission_record_is_eight_columns_with_confirmation():
 
 def test_submission_record_rejects_presubmit_greenhouse_fixture_text():
     job = {"company": "A", "role": "Software Engineer Intern", "url": "https://example.com/1"}
-    fixture_text = (ROOT / "fixtures" / "greenhouse.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "greenhouse.html").read_text(encoding="utf-8")
 
     with pytest.raises(ValueError, match="confirmation"):
         pipeline.submission_row(
@@ -64,7 +64,7 @@ def test_submission_record_rejects_presubmit_greenhouse_fixture_text():
 
 def test_submission_record_accepts_workday_confirmation_fixture_text():
     job = {"company": "A", "role": "Software Engineer Intern", "url": "https://example.com/1"}
-    fixture_text = (ROOT / "fixtures" / "workday_confirmation.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "workday_confirmation.html").read_text(encoding="utf-8")
 
     row = pipeline.submission_row(
         job,

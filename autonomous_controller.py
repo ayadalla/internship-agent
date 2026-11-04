@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import file_lock
+import platform_io
 
 
 class CandidateParked(ValueError):
@@ -27,18 +28,14 @@ def atomic_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     fd, name = tempfile.mkstemp(prefix='.checkpoint-', dir=path.parent)
     try:
-        with os.fdopen(fd, 'w') as stream:
-            os.fchmod(stream.fileno(), 0o600)
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            platform_io.set_private_mode(stream.fileno())
             json.dump(payload, stream, sort_keys=True)
             stream.write('\n')
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(name, path)
-        directory = os.open(path.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
+        platform_io.fsync_directory(path.parent)
     finally:
         if os.path.exists(name):
             os.unlink(name)
@@ -60,7 +57,7 @@ class AutonomousController:
         self.stop_event = threading.Event()
 
     def status(self):
-        return json.loads(self.state_path.read_text()) if self.state_path.exists() else {'status':'idle', 'notification':{'status':'disabled'}}
+        return json.loads(self.state_path.read_text(encoding="utf-8")) if self.state_path.exists() else {'status':'idle', 'notification':{'status':'disabled'}}
 
     def _status(self, status, **extra):
         with self._mutex:
@@ -70,7 +67,7 @@ class AutonomousController:
 
     def _checkpoint(self, **changes):
         path = self.root / 'active-attempt.json'
-        active = json.loads(path.read_text()) if path.exists() else {}
+        active = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
         active.update(changes)
         atomic_json(path, active)
         return active
@@ -86,7 +83,7 @@ class AutonomousController:
 
     def _deliver(self, attempt):
         active_path = self.root/'active-attempt.json'
-        active = json.loads(active_path.read_text())
+        active = json.loads(active_path.read_text(encoding="utf-8"))
         from app_queue import LeaseLostError
         try:
             self._confirmed_queue(active)
@@ -136,7 +133,9 @@ class AutonomousController:
 
     @contextmanager
     def _lock(self):
-        fd = os.open(self.root/'controller.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        lock_path = self.root/'controller.lock'
+        platform_io.refuse_symlink(lock_path)
+        fd = os.open(lock_path, os.O_CREAT | os.O_RDWR | platform_io.NOFOLLOW, 0o600)
         try:
             if not file_lock.try_lock(fd):
                 yield False
@@ -178,7 +177,7 @@ class AutonomousController:
             try:
                 return self.queue.finish_lease(job_id, lease_token=lease_token, outcome=outcome, now=now, error=error)
             except LeaseLostError:
-                active = json.loads((self.root/'active-attempt.json').read_text())
+                active = json.loads((self.root/'active-attempt.json').read_text(encoding="utf-8"))
                 if active.get('job_id') != job_id or active.get('lease_token') != lease_token:
                     raise
                 return self.queue.recover_checkpoint(job_id, lease_token=lease_token,
@@ -203,11 +202,11 @@ class AutonomousController:
 
     def _run_locked(self):
         for path in sorted((self.root/'notifications').glob('*.json')):
-            notification = self._retry_notification(path, json.loads(path.read_text()))
+            notification = self._retry_notification(path, json.loads(path.read_text(encoding="utf-8")))
             self._status(self.status()['status'], notification=notification)
         active_path = self.root / 'active-attempt.json'
         if active_path.exists():
-            active = json.loads(active_path.read_text())
+            active = json.loads(active_path.read_text(encoding="utf-8"))
             if active.get('phase') == 'confirmed':
                 return self._deliver(active)
             if active.get('phase') in {'submitting', 'submission_uncertain'}:
@@ -264,7 +263,7 @@ class AutonomousController:
                 outcome = 'applied' if result['status'] == 'confirmed' else 'submission_uncertain'
                 checkpoint(phase='confirmed' if outcome == 'applied' else outcome)
             except Exception as exc:
-                active = json.loads(active_path.read_text())
+                active = json.loads(active_path.read_text(encoding="utf-8"))
                 if active.get('phase') == 'submitting' and not (isinstance(exc, CandidateParked) and exc.before_submit_intent is True):
                     checkpoint(phase='submission_uncertain')
                     self._finish(job.id, lease_token=job.lease_token, outcome='submission_uncertain', now=self.clock())
@@ -290,11 +289,11 @@ def main(argv=None):
     parser.add_argument('--config', type=Path, required=True)
     args = parser.parse_args(argv)
     try:
-        config = json.loads(args.config.read_text())
+        config = json.loads(args.config.read_text(encoding="utf-8"))
         root = Path(config['runtime_dir']).expanduser().resolve()
         if args.command == 'status':
             status_path = root/'controller-status.json'
-            result = json.loads(status_path.read_text()) if status_path.exists() else {'status':'not_started','notification':{'status':'disabled'}}
+            result = json.loads(status_path.read_text(encoding="utf-8")) if status_path.exists() else {'status':'not_started','notification':{'status':'disabled'}}
             print(json.dumps(result, sort_keys=True))
             return 0
         if config.get('production_enabled') is not True:
@@ -310,7 +309,7 @@ def main(argv=None):
         profile_path = Path(config['profile_path']).expanduser().resolve()
         if profile_path != (Path.home()/'Documents/job-agent/profile.json').resolve():
             raise ValueError('canonical profile is required')
-        profile = json.loads(profile_path.read_text())
+        profile = json.loads(profile_path.read_text(encoding="utf-8"))
         ledger = SubmissionLedger(CANONICAL_LEDGER_PATH, production=True)
         history = migrate_registered_history(runtime_root=canonical_root.parent,
             profile_path=profile_path, account_id=profile['contact']['email'], ledger=ledger)

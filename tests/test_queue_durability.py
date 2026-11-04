@@ -128,12 +128,12 @@ def test_journal_migrates_valid_jsonl_to_sqlite_despite_torn_last_line(tmp_path)
     path = tmp_path / "journal.jsonl"
     entry = dict(job_id=1, attempt_count=1, step="prepared_plan_written", payload={"plan_path": "one.json"})
     original = json.dumps(entry) + '\n{"job_id":2,"payload":'
-    path.write_text(original)
+    path.write_text(original, encoding="utf-8")
     journal = ExecutionJournal(path)
     assert journal.latest_step(job_id=1, attempt_count=1) == entry
     journal.append(job_id=3, attempt_count=1, step="lease_claimed", payload={})
     assert journal.latest_step(job_id=3, attempt_count=1)["step"] == "lease_claimed"
-    assert path.read_text() == original, "legacy evidence must be preserved"
+    assert path.read_text(encoding="utf-8") == original, "legacy evidence must be preserved"
     with sqlite3.connect(journal.db_path) as conn:
         assert conn.execute("PRAGMA integrity_check").fetchone() == ("ok",)
         assert conn.execute("SELECT count(*) FROM execution_entries").fetchone() == (2,)
@@ -152,7 +152,7 @@ def test_reclaimed_lease_recovers_durable_job_checkpoint_without_reprepare(tmp_p
                   lease_seconds=60, plan_dir=tmp_path / "plans")
     fixture = Path(__file__).resolve().parents[1] / "fixtures" / "greenhouse.html"
     with pytest.raises(RuntimeError, match="crash"):
-        queue_worker.prepare_next_job(**kwargs, now=NOW, html_loader=lambda job: fixture.read_text())
+        queue_worker.prepare_next_job(**kwargs, now=NOW, html_loader=lambda job: fixture.read_text(encoding="utf-8"))
     monkeypatch.setattr(queue, "finish_lease", original_finish)
     def forbidden_loader(job):
         raise AssertionError("checkpoint recovery must not reload or reprepare")
@@ -171,7 +171,7 @@ def test_security_gate_is_parked_without_prepared_success_or_blocking_next_job(t
     enqueue(queue)
     enqueue(queue, 2)
     html = tmp_path / "gate.html"
-    html.write_text('<html><form><input name="name"></form><div>Complete assessment</div></html>')
+    html.write_text('<html><form><input name="name"></form><div>Complete assessment</div></html>', encoding="utf-8")
     code = queue_worker.main([
         "--queue-db", str(queue.path), "--journal", str(tmp_path / "journal.db"),
         "--html-path", str(html), "--plan-dir", str(tmp_path / "plans"), "--now", NOW,
@@ -200,7 +200,7 @@ def test_unsafe_plan_never_becomes_prepared_on_initial_or_recovery_attempt(tmp_p
     journal = ExecutionJournal(tmp_path / "journal.db")
     first = queue.lease_next(now=NOW, lease_seconds=60)
     artifact = tmp_path / "unsafe.json"
-    artifact.write_text(json.dumps(payload))
+    artifact.write_text(json.dumps(payload), encoding="utf-8")
     journal.append(job_id=first.id, attempt_count=1, step="prepared_plan_written",
                    payload={"plan_path": str(artifact)})
     replacement = queue.lease_next(now=at(60), lease_seconds=60)
@@ -301,7 +301,7 @@ def test_gate_clearance_invalidates_checkpoint_even_if_finished_audit_was_lost(t
     queue.transition(1, "discovered")
     monkeypatch.setattr(journal, "append", original_append)
     fixture = Path(__file__).resolve().parents[1] / "fixtures" / "greenhouse.html"
-    result = queue_worker.prepare_next_job(**kwargs, now=at(1), html_loader=lambda job: fixture.read_text())
+    result = queue_worker.prepare_next_job(**kwargs, now=at(1), html_loader=lambda job: fixture.read_text(encoding="utf-8"))
     assert result["recovered"] is False
     assert result["queue_job"]["state"] == "prepared"
 
@@ -325,7 +325,7 @@ def test_replaced_worker_cannot_write_checkpoint_before_rejected_finish(tmp_path
     fixture = Path(__file__).resolve().parents[1] / "fixtures" / "greenhouse.html"
     with pytest.raises(ValueError, match="lease"):
         queue_worker.resume_or_prepare_leased_job(
-            queue=queue, leased_job=first, journal=journal, html_text=fixture.read_text(),
+            queue=queue, leased_job=first, journal=journal, html_text=fixture.read_text(encoding="utf-8"),
             expected_resume_basename=None, now=at(61), plan_dir=tmp_path / "plans")
     assert journal.read_all() == []
     assert not list((tmp_path / "plans").glob("*.json"))
@@ -345,7 +345,7 @@ def test_plan_checkpoint_is_published_atomically_before_journal_commit(tmp_path,
     fixture = Path(__file__).resolve().parents[1] / "fixtures" / "greenhouse.html"
     with pytest.raises(OSError, match="atomic publish interrupted"):
         queue_worker.prepare_next_job(queue=queue, journal=journal, now=NOW, lease_seconds=60,
-            html_loader=lambda job: fixture.read_text(), expected_resume_basename=None, plan_dir=tmp_path / "plans")
+            html_loader=lambda job: fixture.read_text(encoding="utf-8"), expected_resume_basename=None, plan_dir=tmp_path / "plans")
     assert [entry["step"] for entry in journal.read_all()] == ["lease_claimed"]
     assert not list((tmp_path / "plans").iterdir())
     assert queue.list_jobs()[0].state == "leased"

@@ -17,14 +17,14 @@ def test_production_uses_one_fixed_submission_store_across_manifest_paths(monkey
         factory({'mode':'production_live','runtime_paths':{'authorization_db':str(tmp_path/name)}})
     assert calls[0] == calls[1]
     assert calls[0][1] == {'production': True}
-    assert calls[0][0].endswith('/Documents/job-agent/runtime/submission-ledger.sqlite3')
+    assert Path(calls[0][0]).as_posix().endswith('/Documents/job-agent/runtime/submission-ledger.sqlite3')
 
 
 def test_live_prepare_enforces_recomputed_maango_before_browser_access(tmp_path):
     from test_production_operator_live import _write_live_inputs
     path, answers, manifest = _write_live_inputs(tmp_path)
     manifest['identity']['company'] = 'Amazon'
-    path.write_text(json.dumps(manifest))
+    path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match='MAANGO'):
         op.run_live_prepare(manifest_path=path, approved_answers_path=answers,
             step='application', cdp_base_url='http://127.0.0.1:9222', production_enabled=False,
@@ -34,9 +34,9 @@ def test_live_prepare_enforces_recomputed_maango_before_browser_access(tmp_path)
 def test_generic_prepare_rejects_answer_file_conflicting_with_canonical_profile(tmp_path):
     from test_production_operator_live import _write_live_inputs
     path, answers_path, manifest = _write_live_inputs(tmp_path)
-    answers = json.loads(answers_path.read_text())
+    answers = json.loads(answers_path.read_text(encoding="utf-8"))
     answers['first_name'] = 'Wrong invented first name'
-    answers_path.write_text(json.dumps(answers))
+    answers_path.write_text(json.dumps(answers), encoding="utf-8")
     with pytest.raises(ValueError, match='canonical'):
         op.run_live_prepare(manifest_path=path, approved_answers_path=answers_path,
             step='application', cdp_base_url='http://127.0.0.1:9222', production_enabled=False,
@@ -76,7 +76,7 @@ def test_delivery_default_never_constructs_tracker(tmp_path, monkeypatch):
         'portal_readback':{'matched_application_count':1,'state':'submitted','submitted':True,'verified':True},
         'human_required':[], 'evidence':{'sanitized':True,'two_source_reconciliation':True}}
     Path(manifest['runtime_paths']['confirmation']).write_text(json.dumps({
-        'status':'portal_confirmed','job_identity':op._manifest_job_identity(manifest),'portal':portal}))
+        'status':'portal_confirmed','job_identity':op._manifest_job_identity(manifest),'portal':portal}), encoding="utf-8")
     monkeypatch.setattr(op, '_TimedLocalTracker', lambda: pytest.fail('tracker default must be disabled'))
     out = op.run_live_delivery(manifest_path=path, submitted_date='2026-09-05', production_enabled=False,
         commit_external=False, discord_channel_id=None, discord_token_env='unused', tracker_adapter=None, discord_adapter=None)

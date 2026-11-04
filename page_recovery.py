@@ -16,7 +16,7 @@ def record_page_action(path: Path, *, action: str, evidence: dict[str, object]) 
 
 def resume_from_verified_page_state(path: Path) -> dict[str, str]:
     """Resume only from verified state; an uncertain submit is inspection-only."""
-    entries = [json.loads(line) for line in Path(path).read_text().splitlines() if line]
+    entries = [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line]
     if not entries:
         return {"status": "blocked", "blocker": "no page recovery evidence", "next_action": "inspect_page"}
     latest = entries[-1]

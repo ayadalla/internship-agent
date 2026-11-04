@@ -32,7 +32,7 @@ class PipelineBackend:
         self.catalog_path = self.root/'discovery-catalog.json'
 
     def discover(self):
-        profile = json.loads(self.profile_path.read_text())
+        profile = json.loads(self.profile_path.read_text(encoding="utf-8"))
         registry = load_registry(self.config['registry_path'])
         jobs, runs = [], []
         for source in registry['sources']:
@@ -70,7 +70,7 @@ class PipelineBackend:
         return {'status':status, 'jobs':list(unique.values()), 'source_runs':runs}
 
     def _candidate(self, job):
-        catalog = json.loads(self.catalog_path.read_text())
+        catalog = json.loads(self.catalog_path.read_text(encoding="utf-8"))
         candidate = catalog.get(normalize_url(job.url))
         if not candidate or any(candidate[key] != getattr(job, key) for key in ('company','role','ats_platform')):
             raise CandidateParked('blocked_fact', 'official_discovery_identity_unavailable')
@@ -81,7 +81,7 @@ class PipelineBackend:
         from canonical_answers import resolve_fact, CanonicalAnswerError, verify_profile_answers
         from resume_preflight import preflight_profile_resume
         candidate = self._candidate(job)
-        profile = json.loads(self.profile_path.read_text())
+        profile = json.loads(self.profile_path.read_text(encoding="utf-8"))
         if maango_company(job.company, job.url):
             raise CandidateParked('blocked_approval', 'maango_requires_separate_approval')
         from scanner import classify
@@ -186,7 +186,7 @@ class PipelineBackend:
         for root in roots:
             for path in root.rglob('*manifest*.json'):
                 try:
-                    old = json.loads(path.read_text())
+                    old = json.loads(path.read_text(encoding="utf-8"))
                 except (OSError, ValueError):
                     raise CandidateParked('blocked_fact', 'historical_artifact_unreadable') from None
                 identity = old.get('identity', {})
@@ -312,7 +312,7 @@ class PipelineBackend:
 
     def _stage_kwargs(self, attempt, *, allow_mutation=False):
         manifest = self._manifest(attempt)
-        posting = json.loads(Path(attempt['provenance_path']).read_text())['official_posting']
+        posting = json.loads(Path(attempt['provenance_path']).read_text(encoding="utf-8"))['official_posting']
         return {'manifest_path':Path(attempt['manifest_path']), 'approved_answers_path':Path(attempt['answers_path']), 'step':'application',
                 'cdp_base_url':'http://127.0.0.1:9222', 'production_enabled':self.config.get('production_enabled') is True,
                 'health_probe':lambda _:self._worker().health(),
@@ -324,7 +324,7 @@ class PipelineBackend:
         from posting_qualifications import qualification_decision, content_hash
         try:
             manifest = self._manifest(attempt)
-            saved = json.loads(Path(attempt['provenance_path']).read_text())
+            saved = json.loads(Path(attempt['provenance_path']).read_text(encoding="utf-8"))
             source = saved['source']
             if (source['platform'] != 'greenhouse' or source['token'] != manifest['identity']['tenant']
                 or saved['identity'] != manifest['identity']
@@ -343,7 +343,7 @@ class PipelineBackend:
                         if normalize_url(p['absolute_url']) == normalize_url(saved['url'])]
             if len(postings) != 1:
                 raise ValueError('official posting missing or ambiguous')
-            decision = qualification_decision(postings[0], json.loads(self.profile_path.read_text()))
+            decision = qualification_decision(postings[0], json.loads(self.profile_path.read_text(encoding="utf-8")))
             if (decision['status'] != 'qualified' or decision != saved['qualification_decision']
                 or content_hash(decision) != attempt['qualification_binding']
                 or content_hash(saved['official_posting']) != decision['posting_sha256']):
@@ -375,7 +375,7 @@ class PipelineBackend:
             # A restart always goes through reconcile(), never this branch.
             manifest = self._manifest(attempt)
             store = op._authorization_store(manifest)
-            profile = json.loads(self.profile_path.read_text())
+            profile = json.loads(self.profile_path.read_text(encoding="utf-8"))
             intent = store.ledger.attempt_for_application(job_id=manifest['job_id'],
                 requisition=manifest['identity']['requisition'], **op._authorization_identity(manifest, profile))
             if intent is None and not Path(manifest['runtime_paths']['submit_journal']).exists():
@@ -391,8 +391,8 @@ class PipelineBackend:
         transition = Path(paths['confirmation']+'.transition.json')
         if transition.exists():
             context = {'job_id':manifest['job_id'], 'journal_path':paths['submit_journal'],
-                       'review_evidence':json.loads(Path(paths['review']).read_text())['review'],
-                       'transition':json.loads(transition.read_text())}
+                       'review_evidence':json.loads(Path(paths['review']).read_text(encoding="utf-8"))['review'],
+                       'transition':json.loads(transition.read_text(encoding="utf-8"))}
         wrapper, _ = op.run_live_confirmation(manifest_path=Path(attempt['manifest_path']),
             cdp_base_url='http://127.0.0.1:9222', production_enabled=self.config.get('production_enabled') is True,
             health_probe=lambda _:self._worker().health(), clock=self.clock,
@@ -408,7 +408,7 @@ class PipelineBackend:
         date_path = Path(attempt['manifest_path']).parent/'delivery-date.json'
         if not date_path.exists():
             atomic_json(date_path, {'submitted_date':self.clock().date().isoformat()})
-        submitted_date = json.loads(date_path.read_text())['submitted_date']
+        submitted_date = json.loads(date_path.read_text(encoding="utf-8"))['submitted_date']
         return op.run_live_delivery(manifest_path=Path(attempt['manifest_path']), submitted_date=submitted_date,
             production_enabled=production, commit_external=production,
             discord_channel_id=self.config.get('discord_channel_id'),

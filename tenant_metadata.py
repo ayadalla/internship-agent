@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 def load_for_page(path: Path, *, page_url: str, platform: str) -> dict | None:
     """Return the single validated tenant record matching this ATS page, if any."""
     try:
-        payload = json.loads(Path(path).read_text())
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError("Invalid learned tenant metadata") from exc
 

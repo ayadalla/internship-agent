@@ -69,7 +69,7 @@ def test_source_snapshot_preserves_pending_duplicate_and_input_bytes(tmp_path):
     assert payload['new'] == 0
     assert payload['observation_only_results'] == payload['all_results']
     assert queue.read_bytes() == before
-    assert json.loads((tmp_path/'source.json').read_text()) == [job]
+    assert json.loads((tmp_path/'source.json').read_text(encoding="utf-8")) == [job]
 
 
 def test_saved_source_boolean_false_stays_in_observation_report(tmp_path):

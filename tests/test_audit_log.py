@@ -27,7 +27,7 @@ def test_log_event_writes_jsonl_and_redacts_sensitive_values(tmp_path):
         },
     )
 
-    entries = [json.loads(line) for line in log_path.read_text().splitlines()]
+    entries = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
 
     assert len(entries) == 1
     assert entries[0]["event"] == "scan.started"

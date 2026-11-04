@@ -379,7 +379,7 @@ def main(argv: list[str] | None = None) -> int:
         }
         if args.report:
             result["report"] = args.report
-            Path(args.report).write_text(json.dumps(result, indent=2) + "\n")
+            Path(args.report).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(result))
         return 2
 
@@ -398,11 +398,11 @@ def main(argv: list[str] | None = None) -> int:
         discovery["report"]["source_evidence"] = snapshot_evidence
         for job in discovery["jobs"]:
             job.update(source="Ashby saved public snapshot", source_live_verified=False)
-    output_path.write_text(json.dumps(discovery["jobs"], indent=2) + "\n")
+    output_path.write_text(json.dumps(discovery["jobs"], indent=2) + "\n", encoding="utf-8")
     result = {**discovery["report"], "output": str(output_path)}
     if args.report:
         result["report"] = args.report
-        Path(args.report).write_text(json.dumps(result, indent=2) + "\n")
+        Path(args.report).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result))
     return discovery["exit_code"]
 

@@ -69,7 +69,7 @@ def test_cli_runs_and_audits_full_sanitized_learned_ats_operator_under_targets(
 
     assert result == 0
     stdout_report = json.loads(capsys.readouterr().out)
-    persisted = json.loads(output.read_text())
+    persisted = json.loads(output.read_text(encoding="utf-8"))
     assert stdout_report == persisted
     assert persisted["schema_version"] == 1
     assert persisted["mode"] == "sanitized_local_demo"

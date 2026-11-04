@@ -7,7 +7,7 @@ from test_autonomous_backend import backend_with_candidate, FakeWorker
 
 
 def change_body(backend, job, content):
-    catalog=json.loads(backend.catalog_path.read_text())
+    catalog=json.loads(backend.catalog_path.read_text(encoding="utf-8"))
     catalog[job.url]['official_posting']['content']=content
     # A caller's approval is deliberately not authority.
     catalog[job.url]['qualification_decision']={'status':'qualified'}
@@ -37,11 +37,11 @@ def test_unsupported_or_unmet_official_requirements_park_before_worker(tmp_path,
 
 def test_matching_explicit_canonical_requirements_are_bound_not_answer_claims(tmp_path):
     backend,job=backend_with_candidate(tmp_path)
-    profile=json.loads(backend.profile_path.read_text())
+    profile=json.loads(backend.profile_path.read_text(encoding="utf-8"))
     profile['education']['currently_enrolled']=True
     profile['citizenship']='United States'
     profile['skills']=['Python','SQL']
-    backend.profile_path.write_text(json.dumps(profile))
+    backend.profile_path.write_text(json.dumps(profile), encoding="utf-8")
     change_body(backend,job,'Qualifications\nMinimum GPA of 3.0\nGraduation between May 2027 and June 2028\n'
         "Must be currently enrolled in a bachelor's degree program\nU.S. citizenship required\nRequired skills: Python, SQL")
     candidate,_,_,_=backend._canonical_inputs(job)
@@ -60,17 +60,17 @@ def test_fresh_official_posting_drift_blocks_authorization(tmp_path, monkeypatch
     backend,job=backend_with_candidate(tmp_path,client=FakeWorker())
     attempt=backend.build_inputs(job,{'id':'new-target','url':job.url},snapshot={
         'read_only':True,'target_id':'new-target','url':job.url,'html':HTML})
-    provenance=json.loads(Path(attempt['provenance_path']).read_text())
+    provenance=json.loads(Path(attempt['provenance_path']).read_text(encoding="utf-8"))
     if drift in {'official_body','missing_fresh_body'}:
         posting={**provenance['official_posting'], 'content':'Minimum GPA of 3.9' if drift=='official_body' else ''}
         backend.opener=lambda *_:Response({'jobs':[posting]})
     elif drift=='profile':
-        profile=json.loads(backend.profile_path.read_text())
+        profile=json.loads(backend.profile_path.read_text(encoding="utf-8"))
         profile['education']['gpa']=2.0
-        backend.profile_path.write_text(json.dumps(profile))
+        backend.profile_path.write_text(json.dumps(profile), encoding="utf-8")
     elif drift=='forged_saved_decision':
         provenance['qualification_decision']={'status':'qualified'}
-        Path(attempt['provenance_path']).write_text(json.dumps(provenance))
+        Path(attempt['provenance_path']).write_text(json.dumps(provenance), encoding="utf-8")
     else:
         def unavailable(*_): raise OSError('offline simulated official source unavailable')
         backend.opener=unavailable

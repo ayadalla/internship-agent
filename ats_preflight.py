@@ -197,7 +197,7 @@ def inspect_workday_html(html_text: str, *, page_url: str) -> dict:
 
 
 def inspect_target(target: dict, *, read_text: Callable[[Path], str] | None = None) -> dict:
-    loader = read_text or (lambda path: path.read_text())
+    loader = read_text or (lambda path: path.read_text(encoding="utf-8"))
     html_text = loader(Path(target["html_path"]))
     platform = target["platform"]
     page_url = target["page_url"]
@@ -250,9 +250,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output")
     args = parser.parse_args(argv)
 
-    payload = run_preflight_manifest(json.loads(Path(args.manifest_path).read_text()))
+    payload = run_preflight_manifest(json.loads(Path(args.manifest_path).read_text(encoding="utf-8")))
     if args.output:
-        Path(args.output).write_text(json.dumps(payload, indent=2) + "\n")
+        Path(args.output).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(payload, indent=2))
     return 0
 

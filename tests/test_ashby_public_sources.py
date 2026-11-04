@@ -32,7 +32,7 @@ def test_cli_discovers_listed_ashby_intern_with_secondary_us_location(tmp_path, 
     report = tmp_path / "health.json"
     assert sources.main(["--ashby", "example.ai", "--output", str(output), "--report", str(report)]) == 0
     assert calls == ["https://api.ashbyhq.com/posting-api/job-board/example.ai"]
-    jobs = json.loads(output.read_text())
+    jobs = json.loads(output.read_text(encoding="utf-8"))
     assert len(jobs) == 1
     assert jobs[0]["role"] == raw["jobs"][0]["title"]
     assert jobs[0]["posting_id"] == "synthetic-id"
@@ -45,7 +45,7 @@ def test_cli_discovers_listed_ashby_intern_with_secondary_us_location(tmp_path, 
     assert jobs[0]["is_listed"] is True
     assert "submission_authorized" not in jobs[0]
     assert "eligible" not in jobs[0]
-    assert json.loads(report.read_text())["ashby_tokens"] == ["example.ai"]
+    assert json.loads(report.read_text(encoding="utf-8"))["ashby_tokens"] == ["example.ai"]
 
 
 def test_ashby_discovery_excludes_rows_without_explicit_listed_true():
@@ -88,18 +88,18 @@ def test_cli_replays_saved_ashby_bytes_without_claiming_live_discovery(tmp_path,
         "jobUrl": "https://jobs.ashbyhq.com/example/snapshot-id", "isListed": True,
         "location": "Canada", "secondaryLocations": [{"location": "United States"}]}]}
     snapshot = tmp_path / "official-saved.json"
-    snapshot.write_text(json.dumps(payload))
+    snapshot.write_text(json.dumps(payload), encoding="utf-8")
     output = tmp_path / "inspection.json"
     report = tmp_path / "report.json"
     monkeypatch.setattr(sources, "urlopen", lambda *args: pytest.fail("snapshot mode must not access network"))
     assert sources.main(["--ashby", "example", "--ashby-snapshot", str(snapshot),
                          "--output", str(output), "--report", str(report)]) == 3
-    jobs = json.loads(output.read_text())
+    jobs = json.loads(output.read_text(encoding="utf-8"))
     assert jobs[0]["posting_id"] == "snapshot-id"
     assert jobs[0]["location"] == "Canada; United States"
     assert jobs[0]["source"] == "Ashby saved public snapshot"
     assert jobs[0]["source_live_verified"] is False
-    evidence = json.loads(report.read_text())["source_evidence"]
+    evidence = json.loads(report.read_text(encoding="utf-8"))["source_evidence"]
     assert evidence == {"kind": "saved_public_snapshot", "path": str(snapshot),
         "sha256": hashlib.sha256(snapshot.read_bytes()).hexdigest(), "live_verified": False}
 
@@ -108,7 +108,7 @@ def test_cli_replays_saved_ashby_bytes_without_claiming_live_discovery(tmp_path,
     ["--ashby", "a", "--greenhouse", "b"], ["--ashby", "a", "--lever", "b"]])
 def test_snapshot_cli_requires_exactly_one_ashby_board(source_args, tmp_path):
     snapshot = tmp_path / "saved.json"
-    snapshot.write_text('{"jobs": []}')
+    snapshot.write_text('{"jobs": []}', encoding="utf-8")
     output = tmp_path / "output.json"
     with pytest.raises(SystemExit) as error:
         sources.main(source_args + ["--ashby-snapshot", str(snapshot), "--output", str(output)])

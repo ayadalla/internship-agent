@@ -27,7 +27,7 @@ def crashed_controller(tmp_path, phase):
             return original(*args,**kwargs)
         first._finish=crash
     with pytest.raises(SystemExit): first.run_once()
-    assert json.loads((first.root/'active-attempt.json').read_text())['phase']==phase
+    assert json.loads((first.root/'active-attempt.json').read_text(encoding="utf-8"))['phase']==phase
     return first
 
 

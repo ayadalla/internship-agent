@@ -10,7 +10,7 @@ import greenhouse_handler
 
 
 def test_inspect_application_fixture_inventories_fields_and_verifies_uploaded_resume():
-    fixture_text = (ROOT / "fixtures" / "greenhouse.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "greenhouse.html").read_text(encoding="utf-8")
 
     result = greenhouse_handler.inspect_html(
         fixture_text,
@@ -85,7 +85,7 @@ def test_inspect_html_fails_closed_on_greenhouse_email_verification_gate():
 
 def test_main_fails_closed_for_greenhouse_manual_gate_and_emits_json(capsys, tmp_path):
     fixture = tmp_path / "email-verification.html"
-    fixture.write_text("<h1>Software Engineer Intern</h1><p>Please verify your email to continue.</p>")
+    fixture.write_text("<h1>Software Engineer Intern</h1><p>Please verify your email to continue.</p>", encoding="utf-8")
 
     exit_code = greenhouse_handler.main([
         str(fixture),

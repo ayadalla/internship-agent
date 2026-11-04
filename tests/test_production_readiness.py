@@ -52,7 +52,7 @@ def test_main_reads_persisted_non_submitting_evidence_and_emits_audit(tmp_path, 
                 }
             }
         )
-    )
+    , encoding="utf-8")
     flows_path.write_text(
         json.dumps(
             {
@@ -60,7 +60,7 @@ def test_main_reads_persisted_non_submitting_evidence_and_emits_audit(tmp_path, 
                 for platform in ("greenhouse", "workday", "lever", "oracle")
             }
         )
-    )
+    , encoding="utf-8")
 
     exit_code = production_readiness.main(
         ["--dry-run-report", str(dry_run_path), "--fixture-flows", str(flows_path)]
@@ -140,11 +140,11 @@ def test_main_reads_persisted_learned_ats_benchmark_evidence(tmp_path, capsys):
         "unsupported_roles_not_queued": True,
         "submission_enabled": False,
         "external_side_effects_blocked": True,
-    }}))
+    }}), encoding="utf-8")
     flows_path.write_text(json.dumps({
         platform: {"submission_enabled": False, "plan": {"platform": platform}}
         for platform in ("greenhouse", "workday", "lever", "oracle")
-    }))
+    }), encoding="utf-8")
     benchmark_path.write_text(json.dumps({
         "platform": "njoyn",
         "preparation_seconds": 299,
@@ -156,7 +156,7 @@ def test_main_reads_persisted_learned_ats_benchmark_evidence(tmp_path, capsys):
         "confirmation_required": True,
         "tracker_readback_required": True,
         "discord_readback_required": True,
-    }))
+    }), encoding="utf-8")
 
     exit_code = production_readiness.main([
         "--dry-run-report", str(dry_run_path),

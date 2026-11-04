@@ -223,7 +223,7 @@ def test_handle_control_authorizes_actor_and_writes_audit_event(tmp_path):
         audit_logger=AuditLogger(audit_path),
     )
 
-    [entry] = [json.loads(line) for line in audit_path.read_text().splitlines()]
+    [entry] = [json.loads(line) for line in audit_path.read_text(encoding="utf-8").splitlines()]
     assert result["status"] == "approved"
     assert entry["event"] == "discord_queue_control_applied"
     assert entry["payload"] == {
@@ -263,7 +263,7 @@ def test_handle_control_denies_unauthorized_actor_without_transition_and_audits_
         )
 
     assert queue.list_jobs()[0].state == "pending_approval"
-    [entry] = [json.loads(line) for line in audit_path.read_text().splitlines()]
+    [entry] = [json.loads(line) for line in audit_path.read_text(encoding="utf-8").splitlines()]
     assert entry["event"] == "discord_queue_control_denied"
     assert entry["payload"] == {
         "actor_id": "untrusted-user",
@@ -316,5 +316,5 @@ def test_handle_control_accepts_single_use_token_once_and_rejects_replay(tmp_pat
             audit_logger=AuditLogger(audit_path),
         )
     assert queue.list_jobs()[0].state == "discovered"
-    events = [json.loads(line)["event"] for line in audit_path.read_text().splitlines()]
+    events = [json.loads(line)["event"] for line in audit_path.read_text(encoding="utf-8").splitlines()]
     assert events == ["discord_queue_control_applied", "discord_queue_control_denied"]

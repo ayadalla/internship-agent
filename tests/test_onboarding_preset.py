@@ -157,7 +157,7 @@ def test_cli_preset_requires_final_review_and_explicit_save(tmp_path, save, expl
     assert result == (0 if save == 'yes' else 1)
     assert path.exists() is (save == 'yes')
     if save == 'yes':
-        profile = json.loads(path.read_text())
+        profile = json.loads(path.read_text(encoding="utf-8"))
         assert non_null_leaves(profile) == PRESET_VALUES
         expected = {path.split('.')[-1]: 'Yes' if value else 'No' for path, value in PRESET_VALUES.items()}
         engine = QuestionAnswerEngine(profile=profile)
@@ -176,7 +176,7 @@ def test_cli_preset_requires_final_review_and_explicit_save(tmp_path, save, expl
 
 def test_check_reports_new_optional_fields_without_applying_preset_or_prompting(tmp_path):
     path = tmp_path / 'private.json'
-    path.write_text('{}')
+    path.write_text('{}', encoding="utf-8")
     original = path.read_bytes(), path.stat().st_mtime_ns
     messages = []
     def no_prompt(_):
@@ -270,12 +270,12 @@ def test_opposite_assistance_alias_blocks_both_preset_polarities(field, value):
     {'application_facts': {'has_company_nda': None}, 'screening_defaults': {'willing_to_relocate': False}}])
 def test_existing_profile_cli_does_not_offer_or_silently_apply_preset(tmp_path, existing):
     path = tmp_path / 'private.json'
-    path.write_text(json.dumps(existing))
+    path.write_text(json.dumps(existing), encoding="utf-8")
     answers = Answers({'Save this profile?': 'yes'})
     assert onboarding.main(['--profile', str(path), '--skip-credentials'],
         input_fn=answers, output_fn=lambda _: None) == 0
     assert PRESET_PROMPT not in answers.prompts
-    saved = json.loads(path.read_text())
+    saved = json.loads(path.read_text(encoding="utf-8"))
     for primary in PRESET_VALUES:
         assert onboarding._get(saved, primary) is onboarding._get(existing, primary)
 

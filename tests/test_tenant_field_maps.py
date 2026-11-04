@@ -233,7 +233,7 @@ def test_prepare_live_job_default_path_uses_semantic_learned_control_map(tmp_pat
     import prepare_live_job
 
     page_url = "https://job-boards.greenhouse.io/fixture/jobs/123"
-    fixture_html = (ROOT / "fixtures" / "greenhouse.html").read_text()
+    fixture_html = (ROOT / "fixtures" / "greenhouse.html").read_text(encoding="utf-8")
 
     class Page:
         target_id = "page-42"
@@ -274,9 +274,9 @@ def test_prepare_live_job_default_path_uses_semantic_learned_control_map(tmp_pat
             return page
 
     profile_path = tmp_path / "profile.json"
-    profile_path.write_text("{}")
+    profile_path.write_text("{}", encoding="utf-8")
     answers_path = tmp_path / "approved.json"
-    answers_path.write_text(json.dumps({"first_name": "Fixture Person"}))
+    answers_path.write_text(json.dumps({"first_name": "Fixture Person"}), encoding="utf-8")
     output_path = tmp_path / "review.json"
 
     exit_code = prepare_live_job.main(
@@ -303,7 +303,7 @@ def test_prepare_live_job_default_path_uses_semantic_learned_control_map(tmp_pat
 
     assert exit_code == 0
     assert page.operations == [("replace_text", "#first_name", "Fixture Person")]
-    persisted = json.loads(output_path.read_text())
+    persisted = json.loads(output_path.read_text(encoding="utf-8"))
     assert persisted["applied_answers"]["field_evidence"][0]["field"] == "first_name"
-    assert "Fixture Person" not in output_path.read_text()
+    assert "Fixture Person" not in output_path.read_text(encoding="utf-8")
     assert json.loads(capsys.readouterr().out) == persisted

@@ -81,7 +81,7 @@ class ExactSubmitPage:
         }
 
     def click_submit_once(self, selector: str) -> None:
-        intent = json.loads(self.journal_path.read_text().splitlines()[-1])
+        intent = json.loads(self.journal_path.read_text(encoding="utf-8").splitlines()[-1])
         assert intent["action"] == "submit"
         assert intent["evidence"]["status"] == "intent_recorded"
         assert intent["evidence"]["verified"] is False
@@ -135,7 +135,7 @@ def test_one_shot_submit_consumes_authorization_journals_intent_then_clicks_once
     assert result["one_shot"] is True
     assert result["replay_allowed"] is False
     assert page.click_count == 1
-    entries = [json.loads(line) for line in journal_path.read_text().splitlines()]
+    entries = [json.loads(line) for line in journal_path.read_text(encoding="utf-8").splitlines()]
     assert [entry["evidence"]["verified"] for entry in entries] == [False, True]
     with pytest.raises(PermissionError, match="replayed"):
         execute(
@@ -223,8 +223,8 @@ def test_post_dispatch_failures_never_release_or_log_exception_secrets(tmp_path,
     with pytest.raises(PermissionError, match="cannot release"):
         store.ledger.release_before_dispatch(attempt["submission_attempt_id"], now="2026-08-27T08:02:00Z")
     assert store.ledger.status(now="2026-08-27T08:02:00Z")["eligible"] is False
-    assert secret not in json.dumps(result) + journal.read_text() + capsys.readouterr().out
-    assert token not in journal.read_text()
+    assert secret not in json.dumps(result) + journal.read_text(encoding="utf-8") + capsys.readouterr().out
+    assert token not in journal.read_text(encoding="utf-8")
     assert token.encode() not in store.path.read_bytes()
 
 

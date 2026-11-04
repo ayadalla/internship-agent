@@ -60,7 +60,7 @@ def test_learned_live_reader_reconciles_exact_confirmation_and_candidate_home(
             return {
                 "target_id": "target-1",
                 "url": page_url,
-                "html": (ROOT / "fixtures" / fixture_name).read_text(),
+                "html": (ROOT / "fixtures" / fixture_name).read_text(encoding="utf-8"),
                 "read_only": True,
             }
 
@@ -93,7 +93,7 @@ def test_live_reader_returns_stable_human_required_when_tenant_reader_is_unverif
             return {
                 "target_id": "target-1",
                 "url": page_url,
-                "html": (ROOT / "fixtures" / fixture_name).read_text(),
+                "html": (ROOT / "fixtures" / fixture_name).read_text(encoding="utf-8"),
                 "read_only": True,
             }
 

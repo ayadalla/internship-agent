@@ -86,11 +86,11 @@ def test_main_no_implicit_sheets_or_token_readiness(tmp_path, monkeypatch, capsy
                                                   browser_ok, oauth_required, oauth_ok, expected):
     import json
     source = tmp_path / "sources.json"
-    source.write_text('{"source_health_status":"healthy"}')
+    source.write_text('{"source_health_status":"healthy"}', encoding="utf-8")
     notification = tmp_path / "notifications.json"
-    notification.write_text('{"status":"delivered","verified":true}')
+    notification.write_text('{"status":"delivered","verified":true}', encoding="utf-8")
     token = tmp_path / "token.json"
-    token.write_text('{}')
+    token.write_text('{}', encoding="utf-8")
     def forbidden(*args, **kwargs):
         pytest.fail("implicit external probe")
     monkeypatch.setattr(operational_health.tracker, "fetch_rows_via_api", forbidden)
@@ -110,7 +110,7 @@ def test_main_no_implicit_sheets_or_token_readiness(tmp_path, monkeypatch, capsy
 def test_explicit_tracker_probe_failure_is_reported_not_hidden_as_in_sync(tmp_path, monkeypatch, capsys):
     import json
     source = tmp_path / "sources.json"
-    source.write_text('{"source_health_status":"healthy"}')
+    source.write_text('{"source_health_status":"healthy"}', encoding="utf-8")
     def fail():
         raise TimeoutError("private upstream diagnostic")
     monkeypatch.setattr(operational_health.tracker, "fetch_rows_via_api", fail)

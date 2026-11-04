@@ -36,7 +36,7 @@ def test_official_feed_does_not_discard_configured_career_levels_before_classifi
 
 def test_existing_normalized_candidate_snapshot_replays_without_current_live_claims():
     # Historical repository artifact, not evidence those listings remain open today.
-    snapshot = json.loads((ROOT / "verified-candidates.json").read_text())
+    snapshot = json.loads((ROOT / "verified-candidates.json").read_text(encoding="utf-8"))
     scan = orchestrator.build_scan(snapshot, profile())
     assert scan["scanned"] == 4
     assert scan["new"] == 4
@@ -76,7 +76,7 @@ def test_callable_discovery_uses_approved_registry_once_per_source(tmp_path):
         {"platform": "greenhouse", "token": "example", "approved": True},
         {"platform": "greenhouse", "token": "example", "approved": True},
         {"platform": "lever", "token": "disabled", "approved": False},
-    ]}))
+    ]}), encoding="utf-8")
     calls = []
     def opener(url, timeout):
         calls.append(url)
@@ -104,7 +104,7 @@ def test_registry_rejects_malformed_tokens_without_normalizing_or_fetching(token
     import source_registry
     registry = tmp_path / "registry.json"
     registry.write_text(json.dumps({"version": 1, "sources": [
-        {"platform": "greenhouse", "token": token, "approved": True}]}))
+        {"platform": "greenhouse", "token": token, "approved": True}]}), encoding="utf-8")
     with pytest.raises(ValueError, match="token"):
         source_registry.load_registry(registry)
 

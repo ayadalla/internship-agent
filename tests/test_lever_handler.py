@@ -13,7 +13,7 @@ import lever_handler
 
 
 def test_inspect_application_fixture_inventories_fields_and_verifies_uploaded_resume():
-    fixture_text = (ROOT / "fixtures" / "lever_application.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "lever_application.html").read_text(encoding="utf-8")
 
     result = lever_handler.inspect_html(
         fixture_text,
@@ -43,7 +43,7 @@ def test_inspect_application_fixture_inventories_fields_and_verifies_uploaded_re
 
 
 def test_inspect_manual_gate_fixture_detects_captcha_blocker():
-    fixture_text = (ROOT / "fixtures" / "lever_manual_gate.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "lever_manual_gate.html").read_text(encoding="utf-8")
 
     result = lever_handler.inspect_html(
         fixture_text,
@@ -56,7 +56,7 @@ def test_inspect_manual_gate_fixture_detects_captcha_blocker():
 
 
 def test_inspect_confirmation_fixture_uses_verified_confirmation_evidence():
-    fixture_text = (ROOT / "fixtures" / "lever_confirmation.html").read_text()
+    fixture_text = (ROOT / "fixtures" / "lever_confirmation.html").read_text(encoding="utf-8")
 
     result = lever_handler.inspect_html(
         fixture_text,

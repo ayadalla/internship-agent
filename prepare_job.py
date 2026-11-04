@@ -57,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
         expected_resume_basename = (
             resume_evidence["basename"] if resume_evidence else args.expected_resume_basename
         )
-        html_text = Path(args.html_path).read_text()
+        html_text = Path(args.html_path).read_text(encoding="utf-8")
         handler = resolve_handler(page_url=args.page_url, html_text=html_text)
         tenant = (
             load_for_page(
@@ -85,7 +85,7 @@ def main(argv: list[str] | None = None) -> int:
         }))
         return 2
     if args.output:
-        Path(args.output).write_text(json.dumps(payload, indent=2) + "\n")
+        Path(args.output).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(payload))
     return 0 if payload.get("safe_to_prepare", True) else 2
 

@@ -7,7 +7,7 @@ URL = 'https://example.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX/
 
 def test_prepare_cli_rejects_unrecognized_oracle_page_without_controls(tmp_path, capsys):
     saved = tmp_path/'synthetic-shell.html'
-    saved.write_text('<html><head><title>Careers</title></head><body><div id="root"></div></body></html>')
+    saved.write_text('<html><head><title>Careers</title></head><body><div id="root"></div></body></html>', encoding="utf-8")
     status = main([str(saved), '--page-url', URL])
     result = json.loads(capsys.readouterr().out)
     assert status == 2
@@ -58,7 +58,7 @@ def test_existing_confirmation_precedence_is_preserved():
 def test_manifest_does_not_count_empty_shell_as_an_application(tmp_path):
     from ats_preflight import run_preflight_manifest
     saved=tmp_path/'synthetic.html'
-    saved.write_text('<div id="root"></div>')
+    saved.write_text('<div id="root"></div>', encoding="utf-8")
     result=run_preflight_manifest([{'platform':'oracle','page_url':URL,'html_path':str(saved)}])
     assert result['summary']['application_count'] == 0
     assert result['results'][0]['safe_to_prepare'] is False

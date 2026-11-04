@@ -37,7 +37,7 @@ def _write_live_inputs(tmp_path: Path) -> tuple[Path, Path, dict]:
                 },
             }
         )
-    )
+    , encoding="utf-8")
     answers = runtime / "approved-answers.json"
     answers.write_text(
         json.dumps(
@@ -51,7 +51,7 @@ def _write_live_inputs(tmp_path: Path) -> tuple[Path, Path, dict]:
                 "sponsorship": "No",
             }
         )
-    )
+    , encoding="utf-8")
     manifest = {
         "schema_version": 1,
         "mode": "sanitized_local",
@@ -91,7 +91,7 @@ def _write_live_inputs(tmp_path: Path) -> tuple[Path, Path, dict]:
         },
     }
     manifest_path = runtime / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     return manifest_path, answers, manifest
 
 
@@ -137,7 +137,7 @@ def test_live_prepare_cli_exact_binds_runs_gates_uploads_profile_resume_and_pers
     import production_operator
 
     manifest_path, answers_path, manifest = _write_live_inputs(tmp_path)
-    fixture_html = (ROOT / "fixtures" / "local_operator_e2e.html").read_text()
+    fixture_html = (ROOT / "fixtures" / "local_operator_e2e.html").read_text(encoding="utf-8")
 
     class Page:
         target_id = "target-abc"
@@ -243,7 +243,7 @@ def test_live_prepare_cli_exact_binds_runs_gates_uploads_profile_resume_and_pers
     assert page.uploaded_path == manifest["resume"]["path"]
 
     persisted_path = Path(manifest["runtime_paths"]["preparation"])
-    persisted_text = persisted_path.read_text()
+    persisted_text = persisted_path.read_text(encoding="utf-8")
     persisted = json.loads(persisted_text)
     assert json.loads(capsys.readouterr().out) == persisted
     assert persisted["status"] == "prepared"
@@ -278,8 +278,8 @@ def test_live_review_cli_reads_exact_server_review_and_persists_only_authority_e
     import production_operator
 
     manifest_path, answers_path, manifest = _write_live_inputs(tmp_path)
-    fixture_html = (ROOT / "fixtures" / "local_operator_e2e.html").read_text()
-    answers = json.loads(answers_path.read_text())
+    fixture_html = (ROOT / "fixtures" / "local_operator_e2e.html").read_text(encoding="utf-8")
+    answers = json.loads(answers_path.read_text(encoding="utf-8"))
     preparation = {
         "target_id": "target-abc",
         "page_url": PAGE_URL,
@@ -312,7 +312,7 @@ def test_live_review_cli_reads_exact_server_review_and_persists_only_authority_e
             "answer_values_persisted": False,
         },
     }
-    Path(manifest["runtime_paths"]["preparation"]).write_text(json.dumps(preparation))
+    Path(manifest["runtime_paths"]["preparation"]).write_text(json.dumps(preparation), encoding="utf-8")
 
     class ReviewPage:
         target_id = "target-abc"
@@ -395,7 +395,7 @@ def test_live_review_cli_reads_exact_server_review_and_persists_only_authority_e
 
     assert result == 0
     assert page.closed is True
-    persisted_text = Path(manifest["runtime_paths"]["review"]).read_text()
+    persisted_text = Path(manifest["runtime_paths"]["review"]).read_text(encoding="utf-8")
     persisted = json.loads(persisted_text)
     review = persisted["review"]
     assert persisted["status"] == "reviewed"
@@ -437,12 +437,12 @@ def _write_authoritative_review(manifest: dict) -> dict:
     import production_operator as op
     import review_reconciler
     import tenant_field_maps
-    profile = json.loads(Path(manifest['profile']['path']).read_text())
+    profile = json.loads(Path(manifest['profile']['path']).read_text(encoding="utf-8"))
     fields = {'#first_name':'Fixture', '#last_name':'Person', '#email':'fixture@example.test',
               '#phone':'+1-555-0100', '#authorization':'Yes', '#sponsorship':'No'}
     identity = {key:manifest['identity'][key] for key in ('company','role','requisition')}
     preparation_path = Path(manifest['runtime_paths']['preparation'])
-    preparation = json.loads(preparation_path.read_text()) if preparation_path.exists() else {
+    preparation = json.loads(preparation_path.read_text(encoding="utf-8")) if preparation_path.exists() else {
         'target_id':manifest['target']['id'], 'page_url':manifest['target']['url'], 'identity':identity,
         'submission_enabled':False, 'review_ready':True, 'answer_coverage':{'human_required':[]},
         'applied_answers':{'verified':True,'field_evidence':[]},
@@ -459,7 +459,7 @@ def _write_authoritative_review(manifest: dict) -> dict:
         required_question_ids=['work_authorization'],question_fields={k:v['selector'] for k,v in mapping['steps']['application']['controls'].items()})
     assert review['review_authoritative'] is True, review
     wrapper={'status':'reviewed','job_identity':op._manifest_job_identity(manifest),'review':review}
-    Path(manifest['runtime_paths']['review']).write_text(json.dumps(wrapper))
+    Path(manifest['runtime_paths']['review']).write_text(json.dumps(wrapper), encoding="utf-8")
     return wrapper
 
 
@@ -491,7 +491,7 @@ def test_live_authorize_cli_requires_explicit_hash_and_delivers_token_only_to_pr
 
     assert result == 0
     handoff_path = Path(manifest["runtime_paths"]["authorization_handoff"])
-    handoff = json.loads(handoff_path.read_text())
+    handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
     assert stat.S_IMODE(handoff_path.stat().st_mode) == 0o600
     assert handoff["schema_version"] == 1
     assert handoff["actor"] == "sanitized-local-operator"
@@ -514,7 +514,7 @@ def test_live_authorize_cli_requires_explicit_hash_and_delivers_token_only_to_pr
     }
     database_bytes = Path(manifest["runtime_paths"]["authorization_db"]).read_bytes()
     assert handoff["token"].encode() not in database_bytes
-    assert handoff["token"] not in Path(manifest["runtime_paths"]["review"]).read_text()
+    assert handoff["token"] not in Path(manifest["runtime_paths"]["review"]).read_text(encoding="utf-8")
 
 
 def test_live_authorize_requires_separate_maango_approval_when_manifest_is_maango(
@@ -524,7 +524,7 @@ def test_live_authorize_requires_separate_maango_approval_when_manifest_is_maang
 
     manifest_path, _, manifest = _write_live_inputs(tmp_path)
     manifest["manual_gate"].update({"maango": True, "maango_approved": True})
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     wrapper = _write_authoritative_review(manifest)
 
     result = production_operator.main(
@@ -554,7 +554,7 @@ def test_live_submit_reconciles_fresh_review_journals_before_one_click_and_denie
     import production_operator
 
     manifest_path, answers_path, manifest = _write_live_inputs(tmp_path)
-    answers = json.loads(answers_path.read_text())
+    answers = json.loads(answers_path.read_text(encoding="utf-8"))
     preparation = {
         "target_id": "target-abc",
         "page_url": PAGE_URL,
@@ -587,7 +587,7 @@ def test_live_submit_reconciles_fresh_review_journals_before_one_click_and_denie
             "answer_values_persisted": False,
         },
     }
-    Path(manifest["runtime_paths"]["preparation"]).write_text(json.dumps(preparation))
+    Path(manifest["runtime_paths"]["preparation"]).write_text(json.dumps(preparation), encoding="utf-8")
     wrapper = _write_authoritative_review(manifest)
     now = datetime(2026, 8, 27, 10, 0, tzinfo=timezone.utc)
     assert production_operator.main(
@@ -607,7 +607,7 @@ def test_live_submit_reconciles_fresh_review_journals_before_one_click_and_denie
     ) == 0
     capsys.readouterr()
 
-    fixture_html = (ROOT / "fixtures" / "local_operator_e2e.html").read_text()
+    fixture_html = (ROOT / "fixtures" / "local_operator_e2e.html").read_text(encoding="utf-8")
 
     class SubmitPage:
         target_id = "target-abc"
@@ -679,7 +679,7 @@ def test_live_submit_reconciles_fresh_review_journals_before_one_click_and_denie
             assert selector == "#submit"
             journal = Path(manifest["runtime_paths"]["submit_journal"])
             assert journal.exists()
-            assert json.loads(journal.read_text().splitlines()[-1])["evidence"][
+            assert json.loads(journal.read_text(encoding="utf-8").splitlines()[-1])["evidence"][
                 "status"
             ] == "intent_recorded"
             self.clicks += 1
@@ -764,8 +764,8 @@ def test_live_confirmation_cli_persists_sanitized_exact_candidate_home_reconcili
             }
         )
         + "\n"
-    )
-    confirmation_html = (ROOT / "fixtures" / "greenhouse_confirmation.html").read_text()
+    , encoding="utf-8")
+    confirmation_html = (ROOT / "fixtures" / "greenhouse_confirmation.html").read_text(encoding="utf-8")
 
     class Page:
         def __enter__(self):
@@ -809,7 +809,7 @@ def test_live_confirmation_cli_persists_sanitized_exact_candidate_home_reconcili
     )
 
     assert result == 0
-    persisted_text = Path(manifest["runtime_paths"]["confirmation"]).read_text()
+    persisted_text = Path(manifest["runtime_paths"]["confirmation"]).read_text(encoding="utf-8")
     persisted = json.loads(persisted_text)
     assert persisted["status"] == "portal_confirmed"
     assert persisted["portal"]["portal_confirmed"] is True
@@ -872,7 +872,7 @@ def test_live_delivery_cli_uses_injected_local_adapters_in_order_and_is_idempote
                 "portal": portal,
             }
         )
-    )
+    , encoding="utf-8")
     events = []
 
     class Tracker:
@@ -965,7 +965,7 @@ def test_live_status_and_resume_turn_uncertain_submit_into_confirmation_inspecti
     _write_authoritative_review(manifest)
     Path(manifest["runtime_paths"]["preparation"]).write_text(
         json.dumps({"status": "prepared"})
-    )
+    , encoding="utf-8")
     Path(manifest["runtime_paths"]["submit_journal"]).write_text(
         json.dumps(
             {
@@ -981,7 +981,7 @@ def test_live_status_and_resume_turn_uncertain_submit_into_confirmation_inspecti
             }
         )
         + "\n"
-    )
+    , encoding="utf-8")
 
     assert production_operator.main(
         ["live", "status", "--manifest", str(manifest_path)]
@@ -998,9 +998,9 @@ def test_live_status_and_resume_turn_uncertain_submit_into_confirmation_inspecti
     }
     assert status["next_action"] == "inspect_confirmation_without_replay"
     assert status["submit_replay_allowed"] is False
-    assert json.loads(Path(manifest["runtime_paths"]["status"]).read_text()) == status
+    assert json.loads(Path(manifest["runtime_paths"]["status"]).read_text(encoding="utf-8")) == status
 
-    confirmation_html = (ROOT / "fixtures" / "greenhouse_confirmation.html").read_text()
+    confirmation_html = (ROOT / "fixtures" / "greenhouse_confirmation.html").read_text(encoding="utf-8")
 
     class InspectionOnlyPage:
         def __enter__(self):
