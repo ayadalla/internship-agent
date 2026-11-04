@@ -2,13 +2,17 @@
 from __future__ import annotations
 
 import base64
-import fcntl
 import json
 import os
 import select
 import signal
 import time
 from pathlib import Path
+
+try:
+    import fcntl
+except ImportError:  # Windows has no fcntl; the pipe-based launcher below is POSIX-only.
+    fcntl = None
 
 from mutable_cdp_page_adapter import MutableCDPPageAdapter, PageControlError
 from scoped_cdp import BoundPage
@@ -347,6 +351,10 @@ class LocalChromeFixtureSession:
         return False
 
     def __enter__(self) -> "LocalChromeFixtureSession":
+        if fcntl is None:
+            raise LocalCDPIntegrationError(
+                "the pipe-based local Chrome fixture session is not supported on Windows yet"
+            )
         if not self.chrome_path.is_file():
             raise LocalCDPIntegrationError("Google Chrome executable is unavailable")
         fixture_text = self.fixture_path.read_text()
