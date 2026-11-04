@@ -151,13 +151,25 @@ def _windows_sddl(path) -> str:
         kernel32.LocalFree(descriptor)
 
 
-def _windows_restrict_to_user(path) -> None:
-    """Drop inherited access and grant full control to the current user only."""
-    result = subprocess.run(
-        [_system32("icacls.exe"), str(path), "/inheritance:r", "/grant:r", f"*{_windows_user_sid()}:F"],
-        capture_output=True, text=True, check=False)
+def _run_icacls(path, *arguments) -> None:
+    result = subprocess.run([_system32("icacls.exe"), str(path), *arguments],
+                            capture_output=True, text=True, check=False)
     if result.returncode != 0:
         raise PermissionError(f"could not restrict access to {path}: {result.stdout.strip()} {result.stderr.strip()}")
+
+
+def _windows_restrict_to_user(path) -> None:
+    """Leave the file with exactly one access entry: full control for the current user.
+
+    "/grant:r" only replaces entries for the user it names, so a file that already
+    carries an explicit entry for someone else (for example Everyone) would keep it.
+    "/reset" first clears every explicit entry; "/inheritance:r" then removes the
+    inherited ones. A brand-new file only has inherited entries, so for the normal
+    case (restricting a file we just created, before writing secrets) this is the
+    same end result as before.
+    """
+    _run_icacls(path, "/reset")
+    _run_icacls(path, "/inheritance:r", "/grant:r", f"*{_windows_user_sid()}:F")
 
 
 def make_private(path, descriptor: int | None = None) -> None:

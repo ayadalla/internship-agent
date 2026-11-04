@@ -124,17 +124,20 @@ def test_windows_is_private_is_false_when_the_acl_cannot_be_read(monkeypatch, tm
     assert platform_io.is_private_file(tmp_path / "missing") is False
 
 
-def test_windows_restrict_runs_icacls_with_sid_and_no_inheritance(monkeypatch, tmp_path):
-    seen = {}
+def test_windows_restrict_clears_explicit_entries_then_grants_only_the_user(monkeypatch, tmp_path):
+    commands = []
     def fake_run(command, **kwargs):
-        seen["command"] = command
+        commands.append(command)
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
     monkeypatch.setattr(platform_io, "_windows_user_sid", lambda: USER)
     monkeypatch.setattr(platform_io.subprocess, "run", fake_run)
     platform_io._windows_restrict_to_user(tmp_path / "secret")
-    command = seen["command"]
-    assert command[0].lower().endswith("icacls.exe")
-    assert command[1:] == [str(tmp_path / "secret"), "/inheritance:r", "/grant:r", f"*{USER}:F"]
+    target = str(tmp_path / "secret")
+    assert all(c[0].lower().endswith("icacls.exe") for c in commands)
+    assert [c[1:] for c in commands] == [
+        [target, "/reset"],
+        [target, "/inheritance:r", "/grant:r", f"*{USER}:F"],
+    ]
 
 
 def test_windows_restrict_failure_is_an_error_not_silent(monkeypatch, tmp_path):
