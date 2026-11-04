@@ -33,6 +33,8 @@ def module():
 @contextmanager
 def local_worker(replies):
     """Protocol fixture, not live evidence; no Chrome or TCP connection."""
+    if not hasattr(socket, "AF_UNIX"):
+        pytest.skip("worker bridge uses Unix domain sockets; no Windows transport yet")
     requests = []
     errors = []
     with tempfile.TemporaryDirectory(prefix="wo-", dir="/tmp") as directory:

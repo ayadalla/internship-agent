@@ -196,7 +196,8 @@ def test_connected_pipeline_real_stages_generated_inputs_one_shot_confirmation(t
     ledger=SubmissionLedger(Path(backend.config['authorization_db']))
     controller=AutonomousController(tmp_path/'control',ApplicationQueue(tmp_path/'queue.db'),backend,ledger)
     result=controller.run_once()
-    assert result['status']=='confirmed', result
+    parked={p.name:p.read_text(encoding='utf-8') for p in (controller.root/'parked').glob('*.json')}
+    assert result['status']=='confirmed', (result, [(j.id,j.state,j.last_error) for j in controller.queue.list_jobs()], parked)
     assert result['notification']['status']==('complete' if notifications else 'disabled')
     if notifications:
         assert result['notification']['tracker']['status']=='not_requested'
