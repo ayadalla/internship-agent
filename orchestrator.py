@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import fcntl
 import json
 from datetime import datetime
 from dataclasses import asdict
@@ -11,6 +10,7 @@ from pathlib import Path
 
 from app_queue import ApplicationQueue
 from audit_log import AuditLogger
+import file_lock
 import pipeline
 import scanner
 
@@ -27,9 +27,7 @@ class RunLock:
 
     def __enter__(self) -> "RunLock":
         self._handle = self.path.open("a+")
-        try:
-            fcntl.flock(self._handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
+        if not file_lock.try_lock(self._handle.fileno()):
             self._handle.close()
             self._handle = None
             raise SystemExit("Another job-agent run is already active")
@@ -37,7 +35,7 @@ class RunLock:
 
     def __exit__(self, exc_type, exc, tb) -> None:
         assert self._handle is not None
-        fcntl.flock(self._handle.fileno(), fcntl.LOCK_UN)
+        file_lock.unlock(self._handle.fileno())
         self._handle.close()
         self._handle = None
 

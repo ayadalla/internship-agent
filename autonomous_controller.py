@@ -1,7 +1,6 @@
 """Unattended policy orchestration; all ATS stages belong to the existing operator."""
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import tempfile
@@ -10,6 +9,8 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+
+import file_lock
 
 
 class CandidateParked(ValueError):
@@ -137,9 +138,7 @@ class AutonomousController:
     def _lock(self):
         fd = os.open(self.root/'controller.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
         try:
-            try:
-                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
+            if not file_lock.try_lock(fd):
                 yield False
                 return
             yield True

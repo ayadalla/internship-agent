@@ -87,10 +87,10 @@ def test_confirmed_delivery_failure_restart_never_resubmits(tmp_path):
 
 
 def test_parallel_run_excluded_before_discovery(tmp_path):
-    import fcntl
+    import file_lock
     controller, backend = make_controller(tmp_path)
     with (controller.root/'controller.lock').open('w') as held:
-        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        assert file_lock.try_lock(held.fileno())
         assert controller.run_once()['status'] == 'already_running'
     assert backend.calls == []
 
