@@ -5,7 +5,12 @@ documented, narrower behaviour on Windows. Nothing here weakens POSIX behaviour.
 """
 from __future__ import annotations
 
+import csv
+import functools
 import os
+import re
+import stat
+import subprocess
 from pathlib import Path
 
 IS_WINDOWS = os.name == "nt"
@@ -45,13 +50,140 @@ def refuse_symlink(path) -> None:
         raise OSError(f"refusing to follow link: {p}")
 
 
-def set_private_mode(descriptor: int) -> None:
-    """Best-effort chmod 0o600 on an open file. No-op where fchmod is missing.
+# --------------------------------------------------------------------------
+# Owner-only ("private") files
+#
+# POSIX: mode 0o600 and owned by the current user.
+# Windows: mode bits do not exist, so privacy means the file's access-control
+# list (ACL) grants access to nobody except the current user, SYSTEM and the
+# Administrators group. Anything unrecognised is treated as NOT private.
+# --------------------------------------------------------------------------
 
-    Windows ignores POSIX mode bits, so this does NOT make the file private
-    there; privacy on Windows comes from where the file lives (under the user's
-    profile) and, later, from ACL checks.
+_SYSTEM_SID = "S-1-5-18"
+_ADMINS_SID = "S-1-5-32-544"
+_SDDL_ALIASES = {"SY": _SYSTEM_SID, "BA": _ADMINS_SID}
+
+
+def _sddl_sid(token: str) -> str:
+    return _SDDL_ALIASES.get(token, token)
+
+
+def sddl_is_private(sddl: str, user_sid: str) -> bool:
+    """Decide from a Windows security descriptor (SDDL text) if a file is owner-only.
+
+    Pure function so the policy is testable on any OS. Private means:
+      * the file has an access list (no list at all would mean "everyone");
+      * its owner is the user, SYSTEM or Administrators;
+      * no "allow" entry names anyone except the user, SYSTEM or Administrators.
+    Deny entries are ignored (they only remove access). Inherit-only entries do
+    not apply to the file itself. Any trustee that is not a plain SID or one of
+    the aliases above (Everyone "WD", Authenticated Users "AU", Users "BU", ...)
+    counts as outside access, so unknown input fails closed.
     """
-    fchmod = getattr(os, "fchmod", None)
-    if fchmod is not None:
-        fchmod(descriptor, 0o600)
+    allowed = {user_sid, _SYSTEM_SID, _ADMINS_SID}
+    owner = re.search(r"O:([^:()]+?)(?=[GDS]:|$)", sddl)
+    if owner is None or _sddl_sid(owner.group(1)) not in allowed:
+        return False
+    dacl = re.search(r"D:((?:[A-Z]*)(?:\([^)]*\))*)", sddl)
+    if dacl is None:
+        return False  # NULL access list: everyone has full access
+    for entry in re.findall(r"\(([^)]*)\)", dacl.group(1)):
+        fields = entry.split(";")
+        if len(fields) < 6:
+            return False
+        ace_type, flags, trustee = fields[0], fields[1], fields[5]
+        if not ace_type.endswith("A") or ace_type in {"AU", "AL"}:
+            continue  # not an allow entry (deny, audit, alarm, ...)
+        if "IO" in flags:
+            continue
+        if _sddl_sid(trustee) not in allowed:
+            return False
+    return True
+
+
+def _system32(name: str) -> str:
+    return os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", name)
+
+
+@functools.lru_cache(maxsize=1)
+def _windows_user_sid() -> str:
+    result = subprocess.run([_system32("whoami.exe"), "/user", "/fo", "csv", "/nh"],
+                            capture_output=True, text=True, check=False)
+    rows = list(csv.reader(result.stdout.splitlines()))
+    if result.returncode != 0 or not rows or len(rows[0]) < 2 or not rows[0][1].startswith("S-1-"):
+        raise OSError("could not determine the current Windows user SID")
+    return rows[0][1]
+
+
+def _windows_sddl(path) -> str:
+    """Owner + access list of a file as SDDL text (Windows only)."""
+    import ctypes
+    from ctypes import wintypes
+
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+    kernel32.LocalFree.restype = ctypes.c_void_p
+    se_file_object, owner_and_dacl = 1, 1 | 4
+    get = advapi32.GetNamedSecurityInfoW
+    get.argtypes = [wintypes.LPCWSTR, ctypes.c_int, wintypes.DWORD, ctypes.c_void_p,
+                    ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                    ctypes.POINTER(ctypes.c_void_p)]
+    get.restype = wintypes.DWORD
+    descriptor = ctypes.c_void_p()
+    status = get(str(path), se_file_object, owner_and_dacl, None, None, None, None,
+                 ctypes.byref(descriptor))
+    if status != 0:
+        raise ctypes.WinError(status)
+    try:
+        convert = advapi32.ConvertSecurityDescriptorToStringSecurityDescriptorW
+        convert.argtypes = [ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD,
+                            ctypes.POINTER(wintypes.LPWSTR), ctypes.c_void_p]
+        convert.restype = wintypes.BOOL
+        text = wintypes.LPWSTR()
+        if not convert(descriptor, 1, owner_and_dacl, ctypes.byref(text), None):
+            raise ctypes.WinError(ctypes.get_last_error())
+        try:
+            return text.value
+        finally:
+            kernel32.LocalFree(ctypes.cast(text, ctypes.c_void_p))
+    finally:
+        kernel32.LocalFree(descriptor)
+
+
+def _windows_restrict_to_user(path) -> None:
+    """Drop inherited access and grant full control to the current user only."""
+    result = subprocess.run(
+        [_system32("icacls.exe"), str(path), "/inheritance:r", "/grant:r", f"*{_windows_user_sid()}:F"],
+        capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        raise PermissionError(f"could not restrict access to {path}: {result.stdout.strip()} {result.stderr.strip()}")
+
+
+def make_private(path, descriptor: int | None = None) -> None:
+    """Make a file we just created owner-only. Raises if that cannot be guaranteed.
+
+    POSIX: fchmod/chmod 0o600. Windows: owner-only ACL, then re-read the ACL and
+    refuse to continue if it is not private. Call it BEFORE writing secrets so
+    nothing sensitive ever sits in a file others could read.
+    """
+    if IS_WINDOWS:
+        _windows_restrict_to_user(path)
+        if not is_private_file(path):
+            raise PermissionError(f"access list on {path} is not owner-only after restricting it")
+        return
+    if descriptor is not None:
+        os.fchmod(descriptor, 0o600)
+    else:
+        os.chmod(path, 0o600)
+
+
+def is_private_file(path, descriptor: int | None = None) -> bool:
+    """True only if the file is owner-only (see module notes). Never raises for a missing file."""
+    try:
+        if IS_WINDOWS:
+            return sddl_is_private(_windows_sddl(path), _windows_user_sid())
+        metadata = os.fstat(descriptor) if descriptor is not None else os.stat(path)
+        return stat.S_IMODE(metadata.st_mode) == 0o600 and metadata.st_uid == os.getuid()
+    except OSError:
+        return False

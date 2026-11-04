@@ -30,6 +30,7 @@ import live_review_reader
 import live_run_manifest
 import notifier
 import one_shot_submit
+import platform_io
 import post_submit_transaction
 import prepare_live_job
 import resume_preflight
@@ -1195,7 +1196,7 @@ def _write_protected_authorization_handoff(path: Path, issued: dict) -> None:
     }
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
-        os.fchmod(descriptor, 0o600)
+        platform_io.make_private(path, descriptor)
         encoded = (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
         os.write(descriptor, encoded)
         os.fsync(descriptor)
@@ -1320,17 +1321,16 @@ def run_live_authorize(
 
 
 def _read_protected_authorization_handoff(path: Path) -> dict:
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
     try:
-        descriptor = os.open(path, flags)
+        platform_io.refuse_symlink(path)
+        descriptor = os.open(path, os.O_RDONLY | platform_io.NOFOLLOW)
     except OSError as exc:
         raise OperatorBlockedError("authorization handoff is unavailable") from exc
     try:
         metadata = os.fstat(descriptor)
         if (
             not stat.S_ISREG(metadata.st_mode)
-            or stat.S_IMODE(metadata.st_mode) != 0o600
-            or metadata.st_uid != os.getuid()
+            or not platform_io.is_private_file(path, descriptor)
             or metadata.st_size > 16384
         ):
             raise OperatorBlockedError("authorization handoff protection is invalid")
@@ -1443,6 +1443,7 @@ class _ManifestSubmitPage:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
                 try:
+                    platform_io.make_private(path, descriptor)
                     os.write(descriptor, json.dumps(transition,sort_keys=True).encode())
                     os.fsync(descriptor)
                 finally:
@@ -1890,7 +1891,7 @@ def build_live_status(manifest: dict) -> dict[str, object]:
     handoff = Path(paths["authorization_handoff"])
     if submit_state != "not_started":
         authorization_state = "consumed_or_unavailable"
-    elif handoff.is_file() and stat.S_IMODE(handoff.stat().st_mode) == 0o600:
+    elif handoff.is_file() and platform_io.is_private_file(handoff):
         authorization_state = "available"
     elif Path(paths["authorization_db"]).is_file():
         authorization_state = "handoff_missing"

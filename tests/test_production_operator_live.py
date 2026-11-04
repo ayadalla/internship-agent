@@ -10,6 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import platform_io
+
 
 PAGE_URL = "https://job-boards.greenhouse.io/fixture/REQ-123"
 
@@ -492,7 +494,7 @@ def test_live_authorize_cli_requires_explicit_hash_and_delivers_token_only_to_pr
     assert result == 0
     handoff_path = Path(manifest["runtime_paths"]["authorization_handoff"])
     handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
-    assert stat.S_IMODE(handoff_path.stat().st_mode) == 0o600
+    assert platform_io.is_private_file(handoff_path)
     assert handoff["schema_version"] == 1
     assert handoff["actor"] == "sanitized-local-operator"
     assert handoff["review_evidence_sha256"] == review_hash

@@ -6,6 +6,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import platform_io
+
 class Response:
     def __init__(self, data): self.data=json.dumps(data).encode()
     def read(self): return self.data
@@ -101,7 +103,7 @@ def test_automatic_manifest_and_answers_are_private_exact_and_profile_grounded(t
     assert manifest['runtime_paths']['authorization_db']==backend.config['authorization_db']
     assert backend.profile_path.read_bytes()==original
     for key in ('manifest_path','answers_path','provenance_path'):
-        assert stat.S_IMODE(Path(attempt[key]).stat().st_mode)==0o600
+        assert platform_io.is_private_file(Path(attempt[key]))
     provenance=json.loads(Path(attempt['provenance_path']).read_text(encoding="utf-8"))
     assert provenance['job_id']==job.id
     assert provenance['source']['token']=='schonfeld'

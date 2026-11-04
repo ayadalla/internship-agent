@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 import pytest
+import platform_io
 from symlink_support import symlink_or_skip
 
 
@@ -472,7 +473,7 @@ def test_cli_review_then_atomic_private_save_preserves_unrelated_data(tmp_path, 
     real_replace = os.replace
     def observed_replace(source, destination):
         assert path.read_bytes() == before
-        assert stat.S_IMODE(Path(source).stat().st_mode) == 0o600
+        assert platform_io.is_private_file(Path(source))
         assert Path(source).parent == path.parent
         real_replace(source, destination)
     monkeypatch.setattr(os, "replace", observed_replace)
@@ -485,7 +486,7 @@ def test_cli_review_then_atomic_private_save_preserves_unrelated_data(tmp_path, 
     assert saved["integration"] == original["integration"]
     assert saved["contact"]["private_note"] == "NEVER_PRINT_NOTE"
     assert "NEVER_PRINT" not in " ".join(messages)
-    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert platform_io.is_private_file(path)
     assert {p.name for p in tmp_path.iterdir()} == {"private.json", "synthetic-resume.pdf"}
 
 

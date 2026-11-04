@@ -361,7 +361,7 @@ def _save(path, profile):
     fd, temporary = tempfile.mkstemp(prefix=".onboarding-", dir=path.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            platform_io.set_private_mode(stream.fileno())
+            platform_io.make_private(temporary, stream.fileno())
             json.dump(profile, stream, indent=2, allow_nan=False)
             stream.write("\n")
             stream.flush()
@@ -454,7 +454,7 @@ def main(argv=None, *, input_fn=input, output_fn=print):
     except (OSError, ValueError):
         output_fn("Profile not saved. Use a valid, untracked private JSON file, not an example or symlink.")
         return 2
-    output_fn("Profile saved privately (mode 0600).")
+    output_fn("Profile saved privately (owner-only access).")
     return 0
 
 

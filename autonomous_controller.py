@@ -29,7 +29,7 @@ def atomic_json(path: Path, payload: dict) -> None:
     fd, name = tempfile.mkstemp(prefix='.checkpoint-', dir=path.parent)
     try:
         with os.fdopen(fd, 'w', encoding='utf-8') as stream:
-            platform_io.set_private_mode(stream.fileno())
+            platform_io.make_private(name, stream.fileno())
             json.dump(payload, stream, sort_keys=True)
             stream.write('\n')
             stream.flush()
