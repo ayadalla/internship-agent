@@ -169,8 +169,14 @@ def make_private(path, descriptor: int | None = None) -> None:
     """
     if IS_WINDOWS:
         _windows_restrict_to_user(path)
-        if not is_private_file(path):
-            raise PermissionError(f"access list on {path} is not owner-only after restricting it")
+        # Read the ACL here (not via is_private_file) so a failure says WHY:
+        # either the read itself failed, or this is the descriptor that was judged.
+        user_sid = _windows_user_sid()
+        text = _windows_sddl(path)
+        if not sddl_is_private(text, user_sid):
+            raise PermissionError(
+                f"access list on {path} is not owner-only after restricting it; "
+                f"user={user_sid} descriptor={text}")
         return
     if descriptor is not None:
         os.fchmod(descriptor, 0o600)
